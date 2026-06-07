@@ -253,6 +253,64 @@ void ler_campos(REG_DADOS_STRUCT* registro_busca, int* mask){
     }
 }
 
+/**Objetivo: ler um registro de dados completo, com todos os valores fornecidos pelo usuário
+ * 
+ * Pré-condições:
+ *      Buffer de entrada padrão deve estar limpo
+ * 
+ * Pós-condições:
+ *      Erro: retorna NULL
+ *      Sucesso: retorna um registro com todos os campos preenchidos
+ *      Chamador deve: apagar os campos strings do registro, e depois o próprio registro.
+ **/
+REG_DADOS_STRUCT* ler_input_reg(){
+
+    REG_DADOS_STRUCT* registro_lido = (REG_DADOS_STRUCT*)malloc(sizeof(REG_DADOS_STRUCT));
+    if(registro_lido == NULL) return NULL;
+
+    // Inicialização de campos de controle
+    registro_lido->removido = '0';
+    registro_lido->proximo = -1;
+
+    char buffer[100];
+
+    // Lê os campos de input, tanto inteiros quanto strings, utilizando a função scanQuoteString, e os salva num registro
+
+    // codEstacao
+    ScanQuoteString(buffer);
+    registro_lido->codEstacao = processar_int(buffer);
+
+    // nomeEstacao
+    ScanQuoteString(buffer); 
+    registro_lido->nomeEstacao = processar_string(buffer, &registro_lido->tamNomeEstacao);
+
+    // codLinha
+    ScanQuoteString(buffer);
+    registro_lido->codLinha = processar_int(buffer);
+
+    // nomeLinha
+    ScanQuoteString(buffer);
+    registro_lido->nomeLinha = processar_string(buffer, &registro_lido->tamNomeLinha);
+
+    // codProxEstacao
+    ScanQuoteString(buffer);
+    registro_lido->codProxEstacao = processar_int(buffer);
+
+    // distProxEstacao
+    ScanQuoteString(buffer);
+    registro_lido->distProxEstacao = processar_int(buffer);
+
+    // codLinhaIntegra
+    ScanQuoteString(buffer);
+    registro_lido->codLinhaIntegra = processar_int(buffer);
+
+    // codEstIntegra
+    ScanQuoteString(buffer);
+    registro_lido->codEstIntegra = processar_int(buffer);
+
+    return registro_lido;
+}
+
 #ifdef DEBUG
 // Função que de fato printa cada byte do binário na tela
 void ExibirBinario(char *arquivo){

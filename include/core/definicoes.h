@@ -106,6 +106,18 @@ e funções auxiliares que podem ser usadas por todo o código.
 	 **/
 	void ler_campos(REG_DADOS_STRUCT* registro_busca, int* mask);
 
+	/**Objetivo: ler um registro de dados completo, com todos os valores fornecidos pelo usuário
+	 * 
+	 * Pré-condições:
+	 *      Buffer de entrada padrão deve estar limpo
+	 * 
+	 * Pós-condições:
+	 *      Erro: retorna NULL
+	 *      Sucesso: retorna um registro com todos os campos preenchidos
+	 *      Chamador deve: apagar os campos strings do registro, e depois o próprio registro.
+	 **/
+	REG_DADOS_STRUCT* ler_input_reg();
+
 	// Função para debug
 	void ExibirBinario(char *arquivo);
 

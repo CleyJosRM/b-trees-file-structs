@@ -4,50 +4,14 @@
 #include "core/definicoes.h"
 #include "core/datamanager.h"
 
-static REG_DADOS_STRUCT* ler_input_reg(){
-    REG_DADOS_STRUCT* registro_lido = (REG_DADOS_STRUCT*)malloc(sizeof(REG_DADOS_STRUCT));
-    if(registro_lido == NULL) return NULL;
-
-    registro_lido->removido = '0';
-    registro_lido->proximo = -1;
-
-    char buffer[100];
-
-    ScanQuoteString(buffer);
-    registro_lido->codEstacao = processar_int(buffer);
-
-    ScanQuoteString(buffer);
-    registro_lido->nomeEstacao = processar_string(buffer, &registro_lido->tamNomeEstacao);
-
-    ScanQuoteString(buffer);
-    registro_lido->codLinha = processar_int(buffer);
-
-    ScanQuoteString(buffer);
-    registro_lido->nomeLinha = processar_string(buffer, &registro_lido->tamNomeLinha);
-
-    ScanQuoteString(buffer);
-    registro_lido->codProxEstacao = processar_int(buffer);
-
-    ScanQuoteString(buffer);
-    registro_lido->distProxEstacao = processar_int(buffer);
-
-    ScanQuoteString(buffer);
-    registro_lido->codLinhaIntegra = processar_int(buffer);
-
-    ScanQuoteString(buffer);
-    registro_lido->codEstIntegra = processar_int(buffer);
-
-    return registro_lido;
-}
-
 void func_10(char* arquivoBin, char* arquivoIndice, int n){
     FILE* fpDados = abre_binario(arquivoBin, true);
     if(fpDados == NULL){
         printf("Falha no processamento do arquivo.\n");
         return;
     }
-
-    FILE* fpIndice = abre_binario(arquivoIndice, true);
+    
+    FILE* fpIndice = fopen(arquivoIndice, "rb+");
     if(fpIndice == NULL){
         printf("Falha no processamento do arquivo.\n");
         fecha_binario(fpDados);
@@ -57,7 +21,7 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
     char status;
     if(fread(&status, 1, 1, fpIndice) != 1 || status != '1'){
         printf("Falha no processamento do arquivo.\n");
-        fecha_binario(fpIndice);
+        fclose(fpIndice);
         fecha_binario(fpDados);
         return;
     }
@@ -66,7 +30,7 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
     fseek(fpDados, 1, SEEK_SET);
     if(fread(&topo, 4, 1, fpDados) != 1 || fread(&proxRRN, 4, 1, fpDados) != 1){
         printf("Falha no processamento do arquivo.\n");
-        fecha_binario(fpIndice);
+        fclose(fpIndice);
         fecha_binario(fpDados);
         return;
     }
@@ -74,7 +38,7 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
     for(int i = 0; i < n; i++){
         REG_DADOS_STRUCT* registro_lido = ler_input_reg();
         if(registro_lido == NULL){
-            printf("Falha no processamento do arquivo.\n");
+        printf("Falha no processamento do arquivo.\n");
             continue;
         }
 
@@ -90,7 +54,7 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
                 if(registro_lido->nomeEstacao) free(registro_lido->nomeEstacao);
                 if(registro_lido->nomeLinha) free(registro_lido->nomeLinha);
                 free(registro_lido);
-                fecha_binario(fpIndice);
+                fclose(fpIndice);
                 fecha_binario(fpDados);
                 return;
             }
@@ -104,7 +68,7 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
         }
 
         if(escreve_registro(registro_lido, fpDados) == false){
-            printf("Falha no processamento do arquivo.\n");
+            printf("Falha no processamento do arquivo de dados em escreve.\n");
         }
 
         if(registro_lido->codEstacao != -1){
@@ -117,15 +81,15 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
     }
 
     if(fecha_binario(fpDados) != 0){
-        printf("Falha no processamento do arquivo.\n");
-        fecha_binario(fpIndice);
+        printf("Falha no processamento do arquivo de dados em fecha.\n");
+        fclose(fpIndice);
         return;
     }
 
     atualizar_cabecalho(arquivoBin, topo, proxRRN);
 
-    if(fecha_binario(fpIndice) != 0){
-        printf("Falha no processamento do arquivo.\n");
+    if(fclose(fpIndice) != 0){
+        printf("Falha no processamento do arquivo de índice em fecha indice.\n");
         return;
     }
 
