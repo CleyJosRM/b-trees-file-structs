@@ -51,16 +51,12 @@ void carregar_cabecalho(FILE* arvoreB, byteNoB* buffer, bool statusInconsistente
         exit(1);
     }
 
+    fseek(arvoreB, 0, SEEK_SET);
+    fread(buffer, TAM_CABECALHO_BTREE, 1, arvoreB);
+
     if(statusInconsistente){
-        fseek(arvoreB, 0, SEEK_SET);
-        char status = '0';
-        fwrite(&status, 1, 1, arvoreB);
-        fread(buffer+1, TAM_CABECALHO_BTREE-1, 1, arvoreB);
         buffer[0] = '0';
-        armazenar_cabecalho(arvoreB, buffer);
-    }else{
-        fseek(arvoreB, 0, SEEK_SET);
-        fread(buffer, TAM_CABECALHO_BTREE, 1, arvoreB);
+        armazenar_cabecalho(arvoreB, buffer); // Esta função já faz o fseek(0)
     }
 }
 

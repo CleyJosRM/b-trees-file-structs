@@ -222,19 +222,35 @@ static bool remover_chave_rec_b(FILE* arvoreB, byteNoB* cabecalho, byteNoB* noAt
             return true;
         }
 
-        int rrnFilho = no_obter_filho(noAtual, idx + 1);
-        byteNoB filho[TAM_NO_BTREE];
+        // Obtemos o filho direto à direita da chave removida.
+        // obter_folha_sucessora desce por ele até a folha para ler a chave sucessora,
+        // mas não usamos o buffer da folha para a recursão, passamos o filho direto.
+        // Isso garante que corrigir_underflow sempre recebe um filho direto de noAtual,
+        // evitando que ele tente carregar irmãos com RRN inválido.
+        int rrnFilhoDir = no_obter_filho(noAtual, idx + 1);
+        byteNoB filhoDir[TAM_NO_BTREE];
+        carregar_no(arvoreB, rrnFilhoDir, filhoDir);
+
+        // Lê a chave sucessora (menor chave do sub-filho direito) sem alterar nada ainda.
+        byteNoB folhaSuc[TAM_NO_BTREE];
         int idxSucessor;
-        int rrnSucessor = obter_folha_sucessora(arvoreB, rrnFilho, filho, &idxSucessor);
-        int chaveSucessora = no_obter_chave(filho, idxSucessor);
-        int rrnDadosSucessor = no_obter_RRNdados(filho, idxSucessor);
+        (void)obter_folha_sucessora(arvoreB, rrnFilhoDir, folhaSuc, &idxSucessor);
+        int chaveSucessora   = no_obter_chave(folhaSuc, idxSucessor);
+        int rrnDadosSucessor = no_obter_RRNdados(folhaSuc, idxSucessor);
+
+        // Substitui a chave removida pela sua sucessora e salva o nó atual.
         no_definir_chave(noAtual, idx, chaveSucessora);
         no_definir_RRNdados(noAtual, idx, rrnDadosSucessor);
         armazenar_no(arvoreB, rrnAtual, noAtual);
 
-        bool removido = remover_chave_rec_b(arvoreB, cabecalho, filho, rrnSucessor, chaveSucessora);
-        if(removido && no_obter_num_chaves(filho) < num_minimo_chaves()){
-            corrigir_underflow(arvoreB, cabecalho, noAtual, rrnAtual, idx + 1, filho, rrnSucessor);
+        // Desce recursivamente pelo filho direto para remover a chave sucessora.
+        // A recursão chegará à folha correta e propagará underflow de baixo para cima.
+        bool removido = remover_chave_rec_b(arvoreB, cabecalho, filhoDir, rrnFilhoDir, chaveSucessora);
+
+        // Recarrega filhoDir do disco, pois a recursão pode tê-lo modificado.
+        carregar_no(arvoreB, rrnFilhoDir, filhoDir);
+        if(removido && no_obter_num_chaves(filhoDir) < num_minimo_chaves()){
+            corrigir_underflow(arvoreB, cabecalho, noAtual, rrnAtual, idx + 1, filhoDir, rrnFilhoDir);
         }
         return removido;
     }
@@ -268,15 +284,16 @@ static void corrigir_raiz(FILE* arvoreB, byteNoB* cabecalho){
 
     empilhar_pagina_livre(arvoreB, cabecalho, rrnRaiz);
     *(int*)&cabecalho[1] = rrnNovaRaiz; // Atualiza o RRNraiz no cabeçalho
+
+    byteNoB novaRaiz[TAM_NO_BTREE];
+    carregar_no(arvoreB, rrnNovaRaiz, novaRaiz);
+    *(int*)&novaRaiz[5] = TIPORAIZ;   // byte offset 5 = tipoNo
+    armazenar_no(arvoreB, rrnNovaRaiz, novaRaiz);
 }
 
 void remover_chave_arvoreB(FILE* arvoreB, int chave){
     byteNoB cabecalho[TAM_CABECALHO_BTREE];
-    carregar_cabecalho(arvoreB, cabecalho, false);
-
-    if(cabecalho[0] != '1'){
-        return;
-    }
+    carregar_cabecalho(arvoreB, cabecalho, true);
 
     int rrnRaiz = get_RRNraiz(cabecalho);
     if(rrnRaiz == -1){

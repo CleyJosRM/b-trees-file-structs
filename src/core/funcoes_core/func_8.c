@@ -11,7 +11,7 @@ void func_8(char* arquivoBin, char* arquivoIndice, int n){
         return;
     }
 
-    FILE* fpIndice = abre_binario(arquivoIndice, false);
+    FILE* fpIndice = fopen(arquivoIndice, "rb");
     if(fpIndice == NULL){
         printf("Falha no processamento do arquivo.\n");
         fclose(fpDados);
