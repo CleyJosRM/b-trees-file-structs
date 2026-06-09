@@ -1,8 +1,8 @@
 // Cleyton José Rodrigues Macedo 16821725
 // Guilherme Cavalcanti de Santana 15456556
 
-#include "../include/core/definicoes.h"
-#include "../include/core/datamanager.h"
+#include "core/definicoes.h"
+#include "core/datamanager.h"
 
 /**
  * @brief Funcionalidade [4]: Realiza a remoção lógica de registros.

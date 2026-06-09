@@ -50,7 +50,7 @@ void nroEstacoesItem_apagar(void** item){
 // Deve retornar <0 se o item1 deve aparecer antes do item2, 0 se tanto faz, >0 se o item2 deve aparecer antes do item1.
 int nroEstacoesItem_ordenar(void* item1, void* item2){
     if(item1 == NULL || item2 == NULL){
-        DEBUG("DEBUG: Uma das estações a serem ordenadas é nula.\n");
+        //DEBUG("ERRO EM nroEstacoes: Uma das estações a serem ordenadas é nula.\n");
         return 0;
     }
 
@@ -90,7 +90,7 @@ void nroParesEstacaoItem_apagar(void** item) {
 // Deve retornar <0 se o item1 deve aparecer antes do item2, 0 se tanto faz, >0 se o item2 deve aparecer antes do item1.
 int nroParesEstacaoItem_ordenar(void* item1, void* item2){
     if(item1 == NULL || item2 == NULL){
-        DEBUG("DEBUG: Um dos pares de estação a serem ordenados é nulo.");
+        //DEBUG("ERRO EM nroParesEstacaoItem_ordenar: Um dos pares de estação a serem ordenados é nulo.");
         return 0;
     }
 
@@ -171,7 +171,7 @@ FILE* abre_binario(char* arquivoBin, bool escrita){
     unsigned char status;
     fread(&status, 1, 1, filestream_bin);
     if(status != '1'){
-        DEBUG("DEBUG: ARQUIVO %s INCONSISTENTE. NÃO FOI POSSÍVEL ABRIR.\n", arquivoBin);
+        DEBUG("ERRO EM abre_binario: ARQUIVO %s INCONSISTENTE. NÃO FOI POSSÍVEL ABRIR.\n", arquivoBin);
         fclose(filestream_bin);
         return NULL;
     }
@@ -482,26 +482,26 @@ bool load_registro(FILE* filestream_bin, REG_DADOS_STRUCT* mem_destino){
 
     long pos_inicial = ftell(filestream_bin); // Armazena a posição inicial de leitura
     if((pos_inicial - HEADER_S)%REG_DADOS_S != 0){
-        DEBUG("DEBUG: CURSOR NÃO ESTÁ POSICIONADO NO COMEÇO DE UM REGISTRO");
+        DEBUG("ERRO EM Load_registro: CURSOR NÃO ESTÁ POSICIONADO NO COMEÇO DE UM REGISTRO");
         return false;
     }
     
-    DEBUG("DEBUG: load_registro SENDO EXECUTADA.\n");
+    //DEBUG("DEBUG: load_registro SENDO EXECUTADA.\n");
 
     unsigned char removido;
     int campos_inteiros[CAMPOS_INT]; // 0-Proximo, 1-codEstacao, 2-codLinha, 3-codProxEstacao, 4-distProxEstacao, 5-codLinhaIntegra, 6-codEstIntegra
 
     // LENDO 'REMOVIDO' E CAMPOS INTEIROS
     if(fread(&removido, 1, 1, filestream_bin) != 1){
-        DEBUG("ERRO AO LER CAMPO removido.\n");
+        DEBUG("ERRO EM load_registro: ERRO AO LER CAMPO removido.\n");
         return false;
     }
     if(fread(campos_inteiros, 4, CAMPOS_INT, filestream_bin) != CAMPOS_INT){
-        DEBUG("ERRO AO LER CAMPOS INTEIROS.\n");
+        DEBUG("ERRO EM load_registro: ERRO AO LER CAMPOS INTEIROS.\n");
         return false;
     }
 
-    DEBUG("CAMPOS INTEIROS FORAM LIDOS. codEstacao = %d\n", campos_inteiros[1]);
+    //DEBUG("CAMPOS INTEIROS FORAM LIDOS. codEstacao = %d\n", campos_inteiros[1]);
 
     // LENDO CAMPOS STRING
     char* campos_strings[CAMPOS_STRINGS] = {NULL}; // 0-nomeEstacao, 1-nomeLinha
@@ -543,7 +543,8 @@ bool load_registro(FILE* filestream_bin, REG_DADOS_STRUCT* mem_destino){
     mem_destino->tamNomeLinha = indicadores_tamanhos[1];
     mem_destino->nomeLinha = campos_strings[1];
 
-    DEBUG("TODOS OS CAMPOS FORAM LIDOS. nomeEstacao = %s\n", mem_destino->nomeEstacao);
+    //
+    DEBUG("load_registro: TODOS OS CAMPOS FORAM LIDOS. nomeEstacao = %s\n", mem_destino->nomeEstacao);
 
     // Move o cursor para o início do próximo registro
     fseek(filestream_bin, pos_inicial + REG_DADOS_S, SEEK_SET);
@@ -617,7 +618,7 @@ void atualizar_cabecalho(char* arquivoBin, int topo, int proxRRN){
     carregar_dados(filestream_bin); // CRIANDO E POPULANDO AS ESTRUTURAS DE DADOS A PARTIR DA INFORMAÇÃO NO DISCO
     
     // ATUALIZANDO TOPO DA PILHA E PROX RRN
-    DEBUG("DEBUG CABECALHO: topo: %d, proxRRN: %d\n", topo, proxRRN);
+    DEBUG("atualizar_cabecalho: topo: %d, proxRRN: %d\n", topo, proxRRN);
 
     unsigned char status_consistente = '1';
     fseek(filestream_bin, 0, SEEK_SET);
@@ -629,8 +630,8 @@ void atualizar_cabecalho(char* arquivoBin, int topo, int proxRRN){
     int nroEstacoes = abb_contar_distintos(nroEstacoesTracker);
     int nroParesEstacao = abb_contar_distintos(nroParesEstacaoTracker);
 
-    DEBUG("DEBUG: nroEstacoes = %d\n", nroEstacoes);
-    DEBUG("DEBUG: nroParesEstacao = %d\n", nroParesEstacao);
+    DEBUG("atualizar_cabecalho: nroEstacoes = %d\n", nroEstacoes);
+    DEBUG("atualizar_cabecalho: nroParesEstacao = %d\n", nroParesEstacao);
 
     fwrite(&nroEstacoes, 4, 1, filestream_bin);
     fwrite(&nroParesEstacao, 4, 1, filestream_bin);

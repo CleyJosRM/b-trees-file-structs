@@ -1,120 +1,110 @@
-#include "../include/arvoreb/arvoreb_interna.h"
+#include "../../include/arvoreb/arvoreb_interna.h"
 
-// Macros de Offset
-#define BYTEOFFSET_STATUS 0
-#define BYTEOFFSET_RRNraiz 1
-#define BYTEOFFSET_TOPO 5
-#define BYTEOFFSET_PROXRRN 9
-#define BYTEOFFSET_NRONOS 13
+/*
+FUNÇÕES QUE ESCREVEM E LÊEM DO DISCO
+Em todas as funções, é fornecida uma filestream para acessar o arquivo
+e o endereço de um buffer na memória onde os bytes serão lidos/escritos.
+As funções do tipo "carregar" lêem bytes do disco e os escrevem na memória principal.
+As funções do tipo "armazenar" lêem bytes da memória principal e os escrevem no disco.
+As permissões da filestream devem ser adequadas e o buffer deve conter espaço suficiente.
+*/
 
-#define BYTEOFFSET_REMOVIDO 0
-#define BYTEOFFSET_PROXPILHA 1
-#define BYTEOFFSET_TIPONO 5
-#define BYTEOFFSET_NROCHAVES 9
-#define BYTEOFFSET_C1 13
-#define BYTEOFFSET_P1 37
 
-int get_RRNraiz(byteNoB* cabecalho){
-    return *((int*)&(cabecalho[BYTEOFFSET_RRNraiz]));
+
+
+
+/**
+ * Transfere um B-nó da memória principal para o arquivo. 
+ * A posição onde se deseja inserir esse B-nó deve ser especificada como RRN.
+ * A filestream deve permitir escrita.
+ */
+void armazenar_no(FILE* arvoreB, const byteBTree* no, int RRN){
+    fseek(arvoreB, TAM_CABECALHO_BTREE+TAM_NO_BTREE*RRN, SEEK_SET); // calculando byteoffset e posicionando o cursor
+    fwrite(no, TAM_NO_BTREE, 1, arvoreB); // escrevendo o conteúdo da memória no disco
 }
 
-int get_topo(byteNoB* cabecalho){
-    return *((int*)&(cabecalho[BYTEOFFSET_TOPO]));	
+/**
+ * Transfere um B-nó do arquivo para a memória principal. 
+ * Para achar esse B-nó, deve ser fornecido o RRN dele.
+ * A filestream deve permitir leitura.
+ */
+void carregar_no(byteBTree* buffer, FILE* arvoreB, int RRN){
+    fseek(arvoreB, TAM_CABECALHO_BTREE+TAM_NO_BTREE*RRN, SEEK_SET); // calculando byteoffset e posicionando o cursor
+    fread(buffer, TAM_NO_BTREE, 1, arvoreB); // lendo o conteúdo do disco para a memória
 }
 
-int get_proxRRN(byteNoB* cabecalho){
-    return *((int*)&(cabecalho[BYTEOFFSET_PROXRRN]));	
+/**
+ * Transfere o cabeçalho da árvore-B da memória principal para o arquivo.
+ * A filestream deve permitir escrita.
+ */
+void armazenar_cabecalho(FILE* arvoreB, const byteBTree* buffer){
+    fseek(arvoreB, 0, SEEK_SET); // calculando byteoffset e posicionando o cursor
+    fwrite(buffer, TAM_CABECALHO_BTREE, 1, arvoreB); // escrevendo o conteúdo da memória no disco
 }
 
-int get_nroNos(byteNoB* cabecalho){
-    return *((int*)&(cabecalho[BYTEOFFSET_NRONOS]));
-}
-
-void armazenar_no(FILE* arvoreB, int RRN, byteNoB* no){
-    fseek(arvoreB, TAM_CABECALHO_BTREE + TAM_NO_BTREE * RRN, SEEK_SET);
-    fwrite(no, TAM_NO_BTREE, 1, arvoreB);
-}
-
-void carregar_no(FILE* arvoreB, int RRN, byteNoB* buffer){
-    fseek(arvoreB, TAM_CABECALHO_BTREE + TAM_NO_BTREE * RRN, SEEK_SET);
-    fread(buffer, TAM_NO_BTREE, 1, arvoreB);
-}
-
-void armazenar_cabecalho(FILE* arvoreB, byteNoB* buffer){
-    fseek(arvoreB, 0, SEEK_SET);
-    fwrite(buffer, TAM_CABECALHO_BTREE, 1, arvoreB);
-}
-
-void carregar_cabecalho(FILE* arvoreB, byteNoB* buffer, bool statusInconsistente){
-    if(arvoreB == NULL || buffer == NULL){
-        printf("Erro em carregar_cabecalho!\n");
-        exit(1);
-    }
-
-    fseek(arvoreB, 0, SEEK_SET);
-    fread(buffer, TAM_CABECALHO_BTREE, 1, arvoreB);
-
-    if(statusInconsistente){
-        buffer[0] = '0';
-        armazenar_cabecalho(arvoreB, buffer); // Esta função já faz o fseek(0)
+/**
+ * Transfere o cabeçalho da árvore-B do arquivo para a memória principal. 
+ * Caso statusInconsistente seja true, o status do arquivo é marcado como '0' antes de retornar.
+ * A filestream deve permitir leitura e escrita, mas a escrita só acontece quando statusInconsistente é true.
+ */
+void carregar_cabecalho(byteBTree* buffer, FILE* arvoreB, bool statusInconsistente){
+    fseek(arvoreB, 0, SEEK_SET); // calculando byteoffset e posicionando o cursor
+    fread(buffer, TAM_CABECALHO_BTREE, 1, arvoreB); // lendo o conteúdo do disco para a memória
+    if(statusInconsistente){ // se quisermos marcar o arquivo como inconsistente
+        buffer[0] = INCONSISTENTE; // atualizando o status na memória
+        fseek(arvoreB, 0, SEEK_SET); // reposicionando o cursor para o primeiro byte
+        fwrite(buffer, 1, 1, arvoreB); // atualizando o status no disco
     }
 }
 
-void get_entradas(ENTRADA_INDICE* vetorEntradas, int n, byteNoB* no){
-    for(int i = 0; i < n; i++){
-        vetorEntradas[i].chave = no_obter_chave(no, i);
-        vetorEntradas[i].RRNdados = no_obter_RRNdados(no, i);
-        vetorEntradas[i].RRNdescendente = no_obter_filho(no, i + 1); // P_i é o filho à direita (i+1)
-    }
+int get_RRNraiz(byteBTree* cabecalho){
+    return *((int*)&(cabecalho[BO_RRNraiz]));
 }
 
-void set_entradas(ENTRADA_INDICE* vetorEntradas, int n, byteNoB* no){
-    for(int i = 0; i < n; i++){
-        no_definir_chave(no, i, vetorEntradas[i].chave);
-        no_definir_RRNdados(no, i, vetorEntradas[i].RRNdados);
-        no_definir_filho(no, i + 1, vetorEntradas[i].RRNdescendente);
-    }
-    // Limpa os slots não utilizados
-    for(int i = n; i < ORDEM_BTREE - 1; i++){
-        no_definir_chave(no, i, -1);
-        no_definir_RRNdados(no, i, -1);
-        no_definir_filho(no, i + 1, -1);
-    }
-    no_definir_num_chaves(no, n);
+int get_topo(byteBTree* cabecalho){
+    return *((int*)&(cabecalho[BO_topo]));  
 }
 
-bool no_eh_folha(byteNoB* no){
-    return *(int*)&no[BYTEOFFSET_TIPONO] == TIPOFOLHA;
+int get_proxRRN(byteBTree* cabecalho){
+    return *((int*)&(cabecalho[BO_proxRRN]));   
 }
 
-int no_obter_num_chaves(byteNoB* no){
-    return *(int*)&no[BYTEOFFSET_NROCHAVES];
+int get_nroNos(byteBTree* cabecalho){
+    return *((int*)&(cabecalho[BO_nroNos]));
 }
 
-void no_definir_num_chaves(byteNoB* no, int n){
-    *(int*)&no[BYTEOFFSET_NROCHAVES] = n;
+bool no_eh_folha(byteBTree* no){
+    return *(int*)&no[BO_tipoNo] == TIPOFOLHA;
 }
 
-int no_obter_chave(byteNoB* no, int idx){
-    return *(int*)&no[BYTEOFFSET_C1 + 8*idx];
+int get_nroChaves(byteBTree* no){
+    return *(int*)&no[BO_nroChaves];
 }
 
-void no_definir_chave(byteNoB* no, int idx, int chave){
-    *(int*)&no[BYTEOFFSET_C1 + 8*idx] = chave;
+void set_nroChaves(byteBTree* no, int n){
+    *(int*)&no[BO_nroChaves] = n;
 }
 
-int no_obter_RRNdados(byteNoB* no, int idx){
-    return *(int*)&no[BYTEOFFSET_C1 + 8*idx + 4];
+int get_chave(byteBTree* no, int idx){
+    return *(int*)&no[BO_C1 + 8*idx];
 }
 
-void no_definir_RRNdados(byteNoB* no, int idx, int rrn){
-    *(int*)&no[BYTEOFFSET_C1 + 8*idx + 4] = rrn;
+void set_chave(byteBTree* no, int idx, int chave){
+    *(int*)&no[BO_C1 + 8*idx] = chave;
 }
 
-int no_obter_filho(byteNoB* no, int idx){
-    return *(int*)&no[BYTEOFFSET_P1 + 4*idx];
+int get_RRNdados(byteBTree* no, int idx){
+    return *(int*)&no[BO_C1 + 8*idx + 4];
 }
 
-void no_definir_filho(byteNoB* no, int idx, int rrnFilho){
-    *(int*)&no[BYTEOFFSET_P1 + 4*idx] = rrnFilho;
+void set_RRNdados(byteBTree* no, int idx, int rrn){
+    *(int*)&no[BO_C1 + 8*idx + 4] = rrn;
+}
+
+int get_filho(byteBTree* no, int idx){
+    return *(int*)&no[BO_P1 + 4*idx];
+}
+
+void set_filho(byteBTree* no, int idx, int rrnFilho){
+    *(int*)&no[BO_P1 + 4*idx] = rrnFilho;
 }

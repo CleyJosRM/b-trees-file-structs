@@ -62,7 +62,7 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
 
         // Se a busca envolve a chave primária (codEstacao), usa o índice Árvore-B
         if(mask[i] & 1){
-            int byteOffset = buscar_chave(fpIndice, registros_de_busca[i].codEstacao);
+            int byteOffset = buscar_entrada(fpIndice, registros_de_busca[i].codEstacao);
             if(byteOffset != -1){
                 int rrnIndice = (byteOffset - HEADER_S) / REG_DADOS_S;  // Conversão "byte offset" para "RRN"
                 if(check_registro(&registros_de_busca[i], mask[i], rrnIndice, fpDados)){
