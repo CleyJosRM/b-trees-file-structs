@@ -14,7 +14,7 @@ e funções auxiliares que podem ser usadas por todo o código.
 	#include<stdio.h>
 	#include<string.h>
 	#include<ctype.h>
-	
+	#include "arvoreb/indice.h"
 
 	#ifdef PRINT_ERROS // se esse símbolo estiver definido
 	#	define DEBUG(...) printf(__VA_ARGS__); // substitua DEBUG por printf e copie os argumentos

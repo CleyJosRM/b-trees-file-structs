@@ -234,7 +234,7 @@ static void no_contar_distintos(NO* no, void** anterior, const TABELA_FUNCOES* f
 
     }else if(ordem > 0){
 
-        printf("ERRO FATAL: A ESTRUTURA DA ÁRVORE ESTÁ CORROMPIDA.\n");
+        printf("ERRO EM no_contar_distintos: A ESTRUTURA DA ÁRVORE ESTÁ CORROMPIDA.\n");
         exit(2);
 
     }
@@ -305,7 +305,7 @@ bool abb_remover(ABB* avl, void* chave){
 
 int abb_contar_distintos(ABB* avl){
     if(avl == NULL || abb_vazia(avl)){
-        DEBUG("DEBUG: A ÁRVORE É NULA OU VAZIA.\n");
+        DEBUG("ERRO EM abb_contar_distintos: A ÁRVORE É NULA OU VAZIA.\n");
         return 0;
     }
 

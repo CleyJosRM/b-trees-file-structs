@@ -35,7 +35,7 @@ void func_8(char* arquivoBin, char* arquivoIndice, int n){
         bool flag_encontrou = false;
 
         if(mask & 1){
-            int byteOffset = buscar_chave(fpIndice, registro_busca.codEstacao);
+            int byteOffset = buscar_entrada(fpIndice, registro_busca.codEstacao);
             if (byteOffset != -1) {
                 int rrn = (byteOffset - HEADER_S) / REG_DADOS_S;  // convert byte offset → RRN
                 if (check_registro(&registro_busca, mask, rrn, fpDados)) {

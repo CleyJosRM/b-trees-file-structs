@@ -15,7 +15,7 @@ void func_7(char* arquivoDados, char* arquivoIndice) {
         return;
     }
 
-    criar_BTree(fpIndice); // Cria a árvore B (arquivo de índice)
+    criar_indice(fpIndice); // Cria a árvore B (arquivo de índice)
 
     fseek(fpDados, HEADER_S, SEEK_SET);
     REG_DADOS_STRUCT registro;
@@ -23,7 +23,7 @@ void func_7(char* arquivoDados, char* arquivoIndice) {
 
     while (load_registro(fpDados, &registro)) {
         if (registro.removido == '0' && registro.codEstacao != -1) {
-            inserir_entrada_na_arvore(fpIndice, registro.codEstacao, HEADER_S + rrn * REG_DADOS_S);        }
+            inserir_entrada(fpIndice, registro.codEstacao, HEADER_S + rrn * REG_DADOS_S);        }
 
         free(registro.nomeEstacao);
         free(registro.nomeLinha);
@@ -35,12 +35,12 @@ void func_7(char* arquivoDados, char* arquivoIndice) {
     fwrite(&status, 1, 1, fpIndice);
 
     fecha_binario(fpDados);
-    fecha_binario(fpIndice);
+    fclose(fpIndice);
 
     BinarioNaTela(arquivoIndice);
 
     #ifdef PRINT_ERROS
-    ExibirBinario(fpIndice);
+    ExibirBinario(arquivoIndice);
     #endif
 
     return;
