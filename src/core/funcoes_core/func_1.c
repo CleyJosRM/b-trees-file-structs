@@ -1,8 +1,8 @@
 // Cleyton José Rodrigues Macedo 16821725
 // Guilherme Cavalcanti de Santana 15456556
 
-#include "../include/core/definicoes.h"
-#include "../include/core/datamanager.h"
+#include "core/definicoes.h"
+#include "core/datamanager.h"
 
 /**Objetivo: ler uma linha do csv e converter em um struct na memória
  * Pré-condições:
