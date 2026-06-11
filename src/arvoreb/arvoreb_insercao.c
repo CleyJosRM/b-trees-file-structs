@@ -116,7 +116,7 @@ void substituir_entrada_em_no(byteBTree* no, ENTRADA_INDICE entradaInserir){
         }
         
         if(!achou){
-            printf("ERRO EM substituir_entrada_em_no: TENTOU SUBSTITUIR A ENTRADA (%d, %d) MAS ELA NÃO EXISTE NO NÓ.\n", entradaInserir.chave, entradaInserir.BOdados); 
+            DEBUG("ERRO EM substituir_entrada_em_no: TENTOU SUBSTITUIR A ENTRADA (%d, %d) MAS ELA NÃO EXISTE NO NÓ.\n", entradaInserir.chave, entradaInserir.BOdados); 
             exit(1);
         }
 

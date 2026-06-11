@@ -394,7 +394,10 @@ bool check_registro(REG_DADOS_STRUCT* chave, int mask, int RRN, FILE* bin){
     // Verificando se o registro está removido e decidindo se deve continuar:
     unsigned char removido;
     fread(&removido, 1, 1, bin);
-    if(removido == '1') return false;
+    if(removido == '1'){
+        DEBUG("DEBUG: em check registro, registro de RRN %d removido\n", RRN)
+        return false;
+    };
 
     // Pular o campo 'proximo'
     fseek(bin, 4, SEEK_CUR);
@@ -485,8 +488,7 @@ bool load_registro(FILE* filestream_bin, REG_DADOS_STRUCT* mem_destino){
         DEBUG("ERRO EM Load_registro: CURSOR NÃO ESTÁ POSICIONADO NO COMEÇO DE UM REGISTRO");
         return false;
     }
-    
-    //DEBUG("DEBUG: load_registro SENDO EXECUTADA.\n");
+    DEBUG("DEBUG: load_registro sendo executada, operando com RRN: %ld\n", (pos_inicial - HEADER_S)/REG_DADOS_S);
 
     unsigned char removido;
     int campos_inteiros[CAMPOS_INT]; // 0-Proximo, 1-codEstacao, 2-codLinha, 3-codProxEstacao, 4-distProxEstacao, 5-codLinhaIntegra, 6-codEstIntegra
@@ -614,6 +616,7 @@ void atualizar_cabecalho(char* arquivoBin, int topo, int proxRRN){
     FILE* filestream_bin = fopen(arquivoBin, "rb+");
     if(filestream_bin == NULL){
         DEBUG("ERRO EM atualizar_cabecalho: FALHA EM ABRIR O ARQUIVO. ELE EXISTE?\n");
+        return;
     }
     carregar_dados(filestream_bin); // CRIANDO E POPULANDO AS ESTRUTURAS DE DADOS A PARTIR DA INFORMAÇÃO NO DISCO
     

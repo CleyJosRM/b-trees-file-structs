@@ -44,6 +44,7 @@ static void pegar_emprestado_da_direita(FILE* arvoreB, byteBTree* pai, int rrnPa
     int chaveIrmao = get_chave(irmao, 0);
     int rrnDadosIrmao = get_RRNdados(irmao, 0);
     int filho0Irmao = get_filho(irmao, 0);
+    int filho1Irmao = get_filho(irmao, 1); // P2 de irmao: será o novo P1 de irmao após a rotação
 
     if(no_eh_folha(filho)){
         set_chave(filho, chavesFilho, chavePai);
@@ -60,6 +61,8 @@ static void pegar_emprestado_da_direita(FILE* arvoreB, byteBTree* pai, int rrnPa
         set_chave(pai, idxFilho, chaveIrmao);
         set_RRNdados(pai, idxFilho, rrnDadosIrmao);
         remover_entrada_do_interno(irmao, 0);
+        // O novo P1 de irmao deve ser o antigo P2.
+        set_filho(irmao, 0, filho1Irmao);
     }
 
     armazenar_no(arvoreB, filho, rrnFilho);
@@ -275,7 +278,12 @@ static void corrigir_raiz(FILE* arvoreB, byteBTree* cabecalho){
 
     byteBTree raiz[TAM_NO_BTREE];
     carregar_no(raiz, arvoreB, rrnRaiz);
-    if(get_nroChaves(raiz) > 0 || no_eh_folha(raiz)){
+
+    if(get_nroChaves(raiz) > 0) return;
+
+    if(no_eh_folha(raiz)){
+        empilhar_pagina_livre(arvoreB, cabecalho, rrnRaiz);
+        set_inteiro(cabecalho, BO_RRNraiz, -1);
         return;
     }
 

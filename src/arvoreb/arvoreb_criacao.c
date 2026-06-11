@@ -36,17 +36,15 @@ int criar_no(byteBTree* novoNo, byteBTree* cabecalho, int tipoNo){
 
 void empilhar_pagina_livre(FILE* arvoreB, byteBTree* cabecalho, int rrnPagina){
     byteBTree pagina[TAM_NO_BTREE];
-    pagina[0] = '1'; // Removido
-    //*(int*)&pagina[1] = get_topo(cabecalho);
+    // Lê o conteúdo atual do nó do disco para preservá-lo.
+    // Apenas os campos 'removido' e 'proximo' são alterados; o restante
+    // (tipoNo, nroChaves, chaves, PRs, filhos) permanece com o último estado válido.
+    carregar_no(pagina, arvoreB, rrnPagina);
+
+    pagina[BO_removido] = '1';
     set_inteiro(pagina, BO_proximo, get_inteiro(cabecalho, BO_topo));
-    //*(int*)&pagina[5] = TIPOFOLHA;
-    set_inteiro(pagina, BO_tipoNo, TIPOFOLHA);
-    //*(int*)&pagina[9] = 0;
-    set_inteiro(pagina, BO_nroChaves, 0);
-    
+
     armazenar_no(arvoreB, pagina, rrnPagina);
-    // *(int*)&cabecalho[5] = rrnPagina; // Atualiza o topo
     set_inteiro(cabecalho, BO_topo, rrnPagina);
-    //*(int*)&cabecalho[13] -= 1;       // Atualiza NroNos
     inc_inteiro(cabecalho, BO_nroNos, -1);
 }

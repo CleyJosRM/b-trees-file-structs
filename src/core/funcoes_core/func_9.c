@@ -10,12 +10,6 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
     FILE* fpDados = NULL;
     FILE* fpIndice = NULL;
 
-    // Gambiarra: em vez de abrir o arquivo de índice fornecido, vamos criar um do zero a partir do binário de dados
-
-    func_7(arquivoBin, arquivoIndice);
-
-    // Abrindo arquivos:
-
     fpDados = abre_binario(arquivoBin, true);
     if(fpDados == NULL){
         DEBUG("ERRO EM func_9: NÃO CONSEGUIU ABRIR O BINÁRIO DE DADOS %s.\n", arquivoBin);
@@ -58,7 +52,7 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
         offset = buscar_entrada(fpIndice, registro_lido->codEstacao);
         if(offset != -1){ // se o registro já estiver no índice, portanto, está no arquivo de dados
             
-            printf("O registro com codEstacao %d já existe, está no byteoffset %ld. Substituindo...\n", registro_lido->codEstacao, offset);
+            DEBUG("O registro com codEstacao %d já existe, está no byteoffset %ld. Substituindo...\n", registro_lido->codEstacao, offset);
             fseek(fpDados, offset, SEEK_SET);
         
         }else if(topo != -1){
@@ -89,10 +83,10 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
             proxRRN++;
         }
 
-        printf("Escrevendo codEstacao %d no byteoffset %ld\n", registro_lido->codEstacao, offset);
+        DEBUG("Escrevendo codEstacao %d no byteoffset %ld\n", registro_lido->codEstacao, offset);
 
         if(escreve_registro(registro_lido, fpDados) == false){
-            printf("Falha no processamento do arquivo de dados em escreve_registro.\n");
+            printf("Falha no processamento do arquivo\n");
             goto erro;
         }
 
