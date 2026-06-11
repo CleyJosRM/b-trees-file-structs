@@ -68,8 +68,6 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
     unsigned char removido_flag = '1';
 
     for(int i = 0; i < n; i++){
-        bool encontrou = false;
-
         // Se a busca envolve a chave primária (codEstacao), usa o índice Árvore-B
         if(mask[i] & 1){
             DEBUG("Buscando registro com codEstacao %d usando o índice Árvore-B.\n", registros_de_busca[i].codEstacao);
@@ -86,8 +84,6 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
                     topoPilha = rrnIndice;
 
                     remover_chave_arvoreB(fpIndice, registros_de_busca[i].codEstacao);
-
-                    encontrou = true;
                 }
             }
         } else {
@@ -115,7 +111,6 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
                         }
                         if(registro_remocao.nomeEstacao) free(registro_remocao.nomeEstacao);
                         if(registro_remocao.nomeLinha) free(registro_remocao.nomeLinha);
-                        encontrou = true;
                     }
                     else{
                         DEBUG("ERRO EM func_10: FALHA AO CARREGAR O REGISTRO DO RRN %d PARA VERIFICAÇÃO.\n", RRN);
@@ -123,8 +118,6 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
                 }
             }
         }
-
-        if (!encontrou) printf("Registro inexistente.\n");
 
         if(mask[i] & 64) free(registros_de_busca[i].nomeEstacao);
         if(mask[i] & 128) free(registros_de_busca[i].nomeLinha);
