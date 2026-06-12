@@ -67,8 +67,12 @@ int buscar_entrada(FILE* arvoreB, int chaveBusca){
     byteBTree cabecalho[TAM_CABECALHO_BTREE]; // buffer na memória para cabeçalho
     carregar_cabecalho(cabecalho, arvoreB, false); // carregando cabeçalho sem alterar status, pois não iremos escrever na árvore
 
-    byteBTree raiz[TAM_NO_BTREE]; // buffer na memória para nó raiz
     int RRNraiz = get_inteiro(cabecalho, BO_RRNraiz); // obtendo o RRN do nó raiz
+    if(RRNraiz == -1){ // se não há raiz
+        return -1; // então não encontrou
+    }
+
+    byteBTree raiz[TAM_NO_BTREE]; // buffer na memória para nó raiz
     carregar_no(raiz, arvoreB, RRNraiz); // trazendo o nó raiz do disco para a memória
 
     return buscar_chave_rec(arvoreB, raiz, chaveBusca); // iniciando a busca recursiva pelo nó raiz e retornando o resultado

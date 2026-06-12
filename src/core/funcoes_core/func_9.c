@@ -16,11 +16,14 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
         goto erro;
     }
         
-    fpIndice = fopen(arquivoIndice, "rb+");
+    fpIndice = abrir_indice(arquivoIndice);
     if(fpIndice == NULL){
         DEBUG("ERRO EM func_9: NÃO CONSEGUIU ABRIR O ARQUIVO DE ÍNDICE %s.\n", arquivoIndice);
         goto erro;
     }
+
+    BinarioNaTela(arquivoBin);
+    BinarioNaTela(arquivoIndice);
 
     // Lendo cabeçalho:
 
@@ -37,8 +40,6 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
 
     // Lendo cada registro do usuário e inserindo:
 
-
-
     for(int i = 0; i < n; i++){
         REG_DADOS_STRUCT* registro_lido = ler_input_reg();
         if(registro_lido == NULL){
@@ -50,11 +51,17 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
         long offset;
 
         offset = buscar_entrada(fpIndice, registro_lido->codEstacao);
+        printf("topo=%d offset=%ld\n", topo, offset);
         if(offset != -1){ // se o registro já estiver no índice, portanto, está no arquivo de dados
-            
+    
             DEBUG("O registro com codEstacao %d já existe, está no byteoffset %ld. Substituindo...\n", registro_lido->codEstacao, offset);
-            fseek(fpDados, offset, SEEK_SET);
-        
+            if( (offset-HEADER_S)%REG_DADOS_S != 0){
+                DEBUG("ERRO EM func_9: BYTEOFFSET ENCONTRADO NO ÍNDICE NÃO APONTA PARA O COMEÇO DE UM REGISTRO DE DADOS.\n");
+                continue;
+            }
+
+            rrnInserido = (offset-HEADER_S)/REG_DADOS_S;
+
         }else if(topo != -1){
 
             rrnInserido = topo;
@@ -71,17 +78,15 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
             
             topo = proximo_na_pilha;
         
-            fseek(fpDados, offset, SEEK_SET);
-        
         }else{
         
             rrnInserido = proxRRN;
             offset = (long)rrnInserido * REG_DADOS_S + HEADER_S;
         
-            fseek(fpDados, offset, SEEK_SET);
-        
             proxRRN++;
         }
+
+        fseek(fpDados, offset, SEEK_SET);
 
         DEBUG("Escrevendo codEstacao %d no byteoffset %ld\n", registro_lido->codEstacao, offset);
 
@@ -99,14 +104,6 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
         free(registro_lido);
     }
 
-
-
-    fseek(fpDados, 1, SEEK_SET);
-    if(fwrite(&topo, 4, 1, fpDados) != 1){
-        DEBUG("ERRO EM func_9: NÃO CONSEGUIU ESCREVER O TOPO DE VOLTA NA PILHA");   
-        goto erro;
-    }
-
     if(fecha_binario(fpDados) != 0){
         DEBUG("ERRO EM func_9: FALHA AO FECHAR BINÁRIO DE DADOS.\n");
         goto erro;
@@ -114,7 +111,7 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
 
     atualizar_cabecalho(arquivoBin, topo, proxRRN);
 
-    if(fecha_binario(fpIndice) != 0){
+    if(fechar_indice(fpIndice) == false){
         DEBUG("ERRO EM func_9: FALHA AO FECHAR ARQUIVO DE ÍNDICE.\n");
         goto erro;
     }
@@ -127,7 +124,7 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
     erro:
 
     printf("Falha no processamento do arquivo.\n");
-    if(fpIndice != NULL) fclose(fpIndice);
-    if(fpDados != NULL) fclose(fpDados);
+    if(fpIndice != NULL) fechar_indice(fpIndice);
+    if(fpDados != NULL) fecha_binario(fpDados);
     return;
 }

@@ -40,7 +40,7 @@ static void inserir_entrada_em_no_shiftada(byteBTree* no, ENTRADA_INDICE novaEnt
  * Se estiver cheio, cria um novo nó, distribui as entradas e promove uma delas.
  * Retorna a entrada promovida
  */
-ENTRADA_INDICE inserir_entrada_em_no(FILE* arvoreB, byteBTree* cabecalho, byteBTree* no, int RRNno, ENTRADA_INDICE entradaInserir, int* tipoNoCriar){
+ENTRADA_INDICE inserir_entrada_em_no(FILE* arvoreB, byteBTree* cabecalho, byteBTree* no, ENTRADA_INDICE entradaInserir, int* tipoNoCriar){
 
     if(check_entrada_nula(entradaInserir)){ // verifica se a entrada recebida é nula
         return entradaInserir; // caso seja nula, retorna sem fazer nada, pois não ocorreu promoção na chamada anterior
@@ -51,7 +51,6 @@ ENTRADA_INDICE inserir_entrada_em_no(FILE* arvoreB, byteBTree* cabecalho, byteBT
     if(nroChaves < ORDEM_BTREE - 1){ // Se existe espaço no nó, então
         
         inserir_entrada_em_no_shiftada(no, entradaInserir); // insere a entrada ordenadamente no nó em memória principal
-        armazenar_no(arvoreB, no, RRNno); // armazena o nó no arquivo
         ENTRADA_INDICE retorno = get_entrada_nula(); // retorna entrada nula
 
         return retorno; // retorna uma entrada inválida, para indicar que não há promoção
@@ -73,7 +72,7 @@ ENTRADA_INDICE inserir_entrada_em_no(FILE* arvoreB, byteBTree* cabecalho, byteBT
         // Criando novo nó (se é o primeiro split, então é do tipo folha, senão tipo intermediário):
         
         byteBTree novoNo[TAM_NO_BTREE]; // alocando espaço na memória para o nó
-        int RRNnovoNo = criar_no(novoNo, cabecalho, *tipoNoCriar); // preenchendo com valores iniciais
+        int RRNnovoNo = criar_no(novoNo, arvoreB, cabecalho, *tipoNoCriar); // preenchendo com valores iniciais
         *tipoNoCriar = TIPOINTERMEDIARIO; // os próximos nós criados devem ser do tipo intermediário
         
         // Gerenciando referências para manter a estrutura da árvore:
@@ -85,7 +84,6 @@ ENTRADA_INDICE inserir_entrada_em_no(FILE* arvoreB, byteBTree* cabecalho, byteBT
 
         set_entradas(no, vetorEntradas, m/2); // nó antigo
         set_entradas(novoNo, vetorEntradas+m/2+1, m-m/2-1); // nó novo
-        armazenar_no(arvoreB, no, RRNno); // nó antigo
         armazenar_no(arvoreB, novoNo, RRNnovoNo); // nó novo
         
         // Retornando a entradaPromovida, que mantém a referência para o nó criado:
@@ -161,78 +159,51 @@ static ENTRADA_INDICE inserir_entrada_na_arvore_rec(FILE* arvoreB, byteBTree* ca
 
     if(RRNdescendente == -1){
 
-        return inserir_entrada_em_no(arvoreB, cabecalho, noAtual, RRNatual, entradaInserir, tipoNoCriado); // retorna entrada promovida
+        return inserir_entrada_em_no(arvoreB, cabecalho, noAtual, entradaInserir, tipoNoCriado); // retorna entrada promovida
+    
     }else{
+
         byteBTree descendente[TAM_NO_BTREE]; // alocando memória para armazenar o nó descendente
         carregar_no(descendente, arvoreB, RRNdescendente); // carregando o nó descendente
         entradaInserir = inserir_entrada_na_arvore_rec(arvoreB, cabecalho, descendente, RRNdescendente, entradaInserir, tipoNoCriado); // inserindo no nó descendente e obtendo a entrada promovida pelo descendente
-        
-        return inserir_entrada_em_no(arvoreB, cabecalho, noAtual, RRNatual, entradaInserir, tipoNoCriado); // insere no nó atual a entrada promovida pelo descendente e retorna a entrada promovida agora
+        armazenar_no(arvoreB, descendente, RRNdescendente);
+
+        return inserir_entrada_em_no(arvoreB, cabecalho, noAtual, entradaInserir, tipoNoCriado); // insere no nó atual a entrada promovida pelo descendente e retorna a entrada promovida agora
     }
 }
 
-/**
- * Cria uma nova raiz e insere uma entrada nela.
- * A filestream deve permitir leitura e escrita.
- * O cabeçalho é necessário para obter proxRRN e atualizar RRN da raiz.
- */
-void criar_raiz_e_inserir(FILE* arvoreB, byteBTree* cabecalho, ENTRADA_INDICE entradaRaiz){
+int criar_outra_raiz(byteBTree* novaRaiz, byteBTree* raizAntiga, int RRNraizAntiga, FILE* arvoreB, byteBTree* cabecalho){
 
-    // Decidindo o tipo da nova raiz:   
+    // o tipo do nó raiz será raiz
+    int RRNnovaRaiz = criar_no(novaRaiz, arvoreB, cabecalho, TIPORAIZ); // preenchendo a nova raiz com valores iniciais
+        
+    // Atualizando o tipo do nó raiz antigo:
 
-    int tipo;
-    if(get_inteiro(cabecalho, BO_nroNos) == 0){ // se a árvore não tem nós
+    if(get_inteiro(raizAntiga, BO_tipoNo) == TIPORAIZ){ // se o nó raiz antigo é do tipo raiz
+        set_inteiro(raizAntiga, BO_tipoNo, TIPOINTERMEDIARIO); // então muda para intermediário
+    } // caso o nó raiz antigo é do tipo folha, ele era o único nó da árvore e continua sendo folha após a criação da nova raiz
         
-        tipo = TIPOFOLHA; // o tipo do nó raiz será folha
-        
-        byteBTree novaRaiz[TAM_NO_BTREE]; // alocando espaço na memória para a nova raiz
-        int RRNnovaRaiz = criar_no(novaRaiz, cabecalho, tipo); // preenchendo a nova raiz com valores iniciais
-        
-        // Atualizando o RRN da raiz no cabeçalho:
-        
-        set_inteiro(cabecalho, BO_RRNraiz, RRNnovaRaiz);
-        
-        // Insere a entrada na raiz e armazena a raiz antiga e nova no disco:
-        
-        inserir_entrada_em_no_shiftada(novaRaiz, entradaRaiz);
-        armazenar_no(arvoreB, novaRaiz, RRNnovaRaiz);
-        
-    }else{ // caso tenha nós
-        
-        tipo = TIPORAIZ; // o tipo do nó raiz será raiz
+    // Conectando a raiz nova com a raiz antiga:
 
-        // Transferindo a raiz antiga do disco para a memória e criando a nova raiz na memória principal:
-
-        byteBTree raizAntiga[TAM_NO_BTREE]; // alocando espaço na memória para a raiz antiga
-        byteBTree novaRaiz[TAM_NO_BTREE]; // alocando espaço na memória para a nova raiz
-        int RRNraizAntiga = get_inteiro(cabecalho, BO_RRNraiz); // obtendo o RRNraiz
-        carregar_no(raizAntiga, arvoreB, RRNraizAntiga); // transferindo a raiz antiga do disco para a memória
-        int RRNnovaRaiz = criar_no(novaRaiz, cabecalho, tipo); // preenchendo a nova raiz com valores iniciais
-        
-        // Atualizando o tipo do nó raiz antigo:
-
-        if(get_inteiro(raizAntiga, BO_tipoNo) == 0){ // se o nó raiz antigo é do tipo raiz
-            set_inteiro(raizAntiga, BO_tipoNo, 1); // então muda para intermediário
-        } // caso o nó raiz antigo é do tipo folha, ele era o único nó da árvore e continua sendo folha após a criação da nova raiz
-        
-        // Conectando a raiz nova com a raiz antiga:
-
-        set_inteiro(novaRaiz, BO_P1, RRNraizAntiga); // A raiz antiga é descendente da nova raiz
-
-        // Atualizando o RRN da raiz no cabeçalho:
-        
-        set_inteiro(cabecalho, BO_RRNraiz, RRNnovaRaiz);
-
-        // Insere a entrada na raiz e armazena a raiz antiga e nova no disco:
-        
-        inserir_entrada_em_no_shiftada(novaRaiz, entradaRaiz);
-
-        armazenar_no(arvoreB, novaRaiz, RRNnovaRaiz);
-        armazenar_no(arvoreB, raizAntiga, RRNraizAntiga);
-    }
-
+    set_inteiro(novaRaiz, BO_P1, RRNraizAntiga); // A raiz antiga é descendente da nova raiz
     
+    // Atualizando o RRN da raiz no cabeçalho:
+        
+    set_inteiro(cabecalho, BO_RRNraiz, RRNnovaRaiz);
+    
+    return RRNnovaRaiz;
+}
 
+int criar_nova_raiz(byteBTree* novaRaiz, FILE* arvoreB, byteBTree* cabecalho){
+
+    // o tipo do nó raiz será folha
+    int RRNnovaRaiz = criar_no(novaRaiz, arvoreB, cabecalho, TIPOFOLHA); // preenchendo a nova raiz com valores iniciais
+
+    // Atualizando o RRN da raiz no cabeçalho:
+        
+    set_inteiro(cabecalho, BO_RRNraiz, RRNnovaRaiz);
+
+    return RRNnovaRaiz;    
 }
 
 /**
@@ -242,12 +213,17 @@ void criar_raiz_e_inserir(FILE* arvoreB, byteBTree* cabecalho, ENTRADA_INDICE en
  */
 void inserir_entrada(FILE* arvoreB, int chave, int BOdados){
     
-    ENTRADA_INDICE inserirNaRaiz = {chave, BOdados, -1};
+    ENTRADA_INDICE inserirNaArvore = {chave, BOdados, -1};
     byteBTree cabecalho[TAM_CABECALHO_BTREE];
     carregar_cabecalho(cabecalho, arvoreB, true);
 
     if(get_inteiro(cabecalho, BO_RRNraiz) == -1){ // Se não há raiz
-        criar_raiz_e_inserir(arvoreB, cabecalho, inserirNaRaiz); // Cria a raiz e insere
+        
+        // Criando a primeira raiz da árvore
+        byteBTree novaRaiz[TAM_NO_BTREE];
+        int RRNnovaRaiz = criar_nova_raiz(novaRaiz, arvoreB, cabecalho);
+        inserir_entrada_em_no_shiftada(novaRaiz, inserirNaArvore);
+        armazenar_no(arvoreB, novaRaiz, RRNnovaRaiz);
         armazenar_cabecalho(arvoreB, cabecalho);
         return;
     }
@@ -257,11 +233,15 @@ void inserir_entrada(FILE* arvoreB, int chave, int BOdados){
     carregar_no(raiz, arvoreB, RRNraiz);
     int tipoNoCriar = TIPOFOLHA;
 
-    ENTRADA_INDICE entradaRaiz = inserir_entrada_na_arvore_rec(arvoreB, cabecalho, raiz, RRNraiz, inserirNaRaiz, &tipoNoCriar);
+    ENTRADA_INDICE entradaRaiz = inserir_entrada_na_arvore_rec(arvoreB, cabecalho, raiz, RRNraiz, inserirNaArvore, &tipoNoCriar);
     
     if(!check_entrada_nula(entradaRaiz)){ // Se alguma entrada foi promovida, precisamos criar uma nova raiz
-        criar_raiz_e_inserir(arvoreB, cabecalho, entradaRaiz);
+        byteBTree novaRaiz[TAM_NO_BTREE];
+        int RRNnovaRaiz = criar_outra_raiz(novaRaiz, raiz, RRNraiz, arvoreB, cabecalho);
+        inserir_entrada_em_no_shiftada(novaRaiz, entradaRaiz);
+        armazenar_no(arvoreB, novaRaiz, RRNnovaRaiz);
     }
 
+    armazenar_no(arvoreB, raiz, RRNraiz);
     armazenar_cabecalho(arvoreB, cabecalho);
 }

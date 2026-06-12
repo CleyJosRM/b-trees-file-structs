@@ -125,7 +125,7 @@
     bool no_pode_emprestar(byteBTree* no);
 
     // Criação de Nós
-    int criar_no(byteBTree* novoNo, byteBTree* cabecalho, int tipoNo);
+    int criar_no(byteBTree* novoNo, FILE* arvoreB, byteBTree* cabecalho, int tipoNo);
 
     void empilhar_pagina_livre(FILE* arvoreB, byteBTree* cabecalho, int rrnPagina);
 
