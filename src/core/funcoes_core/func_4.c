@@ -61,12 +61,12 @@ void func_4(char* arquivoBin, int n){
     }
 
     // ATUALIZANDO CABEÇALHO E FECHANDO ARQUIVO
-    
+
+    atualizar_cabecalho(filestream_bin, topoPilha, proxRRN);
     if(fecha_binario(filestream_bin) != 0){
         DEBUG("DEBUG: ERRO AO FECHAR BIN %s\n", arquivoBin);
         goto erro;
     }
-    atualizar_cabecalho(arquivoBin, topoPilha, proxRRN);
 
     // LIMPANDO E RETORNANDO
 

@@ -155,12 +155,12 @@ void func_1(char* arquivoEntrada, char* arquivoSaida){ // a ordem dos argumentos
 			goto erro;
 		}
 	}
+
+	atualizar_cabecalho(filestream_bin, -1, proxRRN);
 	if(fecha_binario(filestream_bin) != 0){
 		DEBUG("DEBUG: ERRO AO FECHAR BIN %s\n", arquivoSaida);
 		goto erro;
 	}
-
-	atualizar_cabecalho(arquivoSaida, -1, proxRRN);
 	
 	// EXIBINDO ARQUIVO
 

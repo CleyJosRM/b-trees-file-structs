@@ -5,29 +5,29 @@
 #include "core/datamanager.h"
 
 void func_8(char* arquivoBin, char* arquivoIndice, int n){
-    FILE* fpDados = abre_binario(arquivoBin, false);
+    
+    FILE* fpDados = NULL;
+    FILE* fpIndice = NULL;
+
+    // Abrindo arquivos:
+
+    fpDados = abre_binario(arquivoBin, false);
     if(fpDados == NULL){
-        printf("Falha no processamento do arquivo.\n");
-        return;
+        DEBUG("ERRO EM func_8: ERRO AO ABRIR O BINÁRIO DE DADOS. PODE ESTAR INCONSISTENTE.\n");
+        goto erro;
     }
 
-    FILE* fpIndice = fopen(arquivoIndice, "rb");
+    fpIndice = abrir_indice(arquivoIndice, false); // como só iremos ler o índice, o status não precisa ser marcado como inconsistente
     if(fpIndice == NULL){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(fpDados);
-        return;
+        DEBUG("ERRO EM func_8: ERRO AO ABRIR O ARQUIVO DE ÍNDICE. PODE ESTAR INCONSISTENTE.\n");
+        goto erro;
     }
 
-    char status;
-    if(fread(&status, 1, 1, fpIndice) != 1 || status != '1'){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(fpDados);
-        fclose(fpIndice);
-        return;
-    }
+    // Lendo campos de busca n vezes e realizando a busca no binário de dados:
 
     int topoPilha, proxRRN;
     for(int i = 0; i < n; i++){
+
         REG_DADOS_STRUCT registro_busca;
         int mask;
         ler_campos(&registro_busca, &mask);
@@ -47,10 +47,8 @@ void func_8(char* arquivoBin, char* arquivoIndice, int n){
         } else {
             fseek(fpDados, 1, SEEK_SET);
             if(fread(&topoPilha, 4, 1, fpDados) != 1 || fread(&proxRRN, 4, 1, fpDados) != 1){
-                fclose(fpDados);
-                fclose(fpIndice);
-                printf("Falha no processamento do arquivo.\n");
-                return;
+                DEBUG("ERRO EM func_8: NÃO CONSEGUIU LER topo DA PILHA E proxRRN.\n");
+                goto erro;
             }
 
             for(int RRN = 0; RRN < proxRRN; RRN++){
@@ -69,12 +67,22 @@ void func_8(char* arquivoBin, char* arquivoIndice, int n){
         if(mask & 128) free(registro_busca.nomeLinha);
     }
 
+    // Fechando arquivos
+
     if(fecha_binario(fpDados) != 0){
-        DEBUG("DEBUG: ERRO AO FECHAR BIN %s\n", arquivoBin);
-        printf("Falha no processamento do arquivo.\n");
+        DEBUG("ERRO EM func_8: ERRO AO FECHAR BIN %s\n", arquivoBin);
+        goto erro;
     }
-    if(fecha_binario(fpIndice) != 0){
-        DEBUG("DEBUG: ERRO AO FECHAR INDICE %s\n", arquivoIndice);
-        printf("Falha no processamento do arquivo.\n");
+    if(fechar_indice(fpIndice, false) == false){
+        DEBUG("ERRO EM func_8: ERRO AO FECHAR INDICE %s\n", arquivoIndice);
+        goto erro;
     }
+
+    return;
+
+    erro:
+
+    printf("Falha no processamento do arquivo.\n");
+    fecha_binario(fpDados);
+    fechar_indice(fpIndice, false);
 }

@@ -1,28 +1,57 @@
 #include "arvoreb/arvoreb_interna.h"
 
-FILE* abrir_indice(char* nomeIndice){  
+FILE* abrir_indice(char* nomeIndice, bool escrita){  
 
-    FILE* fs = fopen(nomeIndice, "rb+");
+    // Abrindo a filestream com o modo correto:
+
+    char* modo = escrita ? "rb+" : "rb";
+
+    FILE* fs = fopen(nomeIndice, modo);
     if(fs == NULL){
-        DEBUG("ERRO EM abrir_indice: NÃO ENCONTROU O ARQUIVO. VERIFIQUE NOME E PERMISSÕES.");
+        DEBUG("ERRO EM abrir_indice: NÃO ENCONTROU O ARQUIVO. VERIFIQUE NOME E PERMISSÕES.\n");
         return NULL;
     }
+
+    // Verificando se o status está consistente:
+
     fseek(fs, 0, SEEK_SET);
-    byteBTree status = INCONSISTENTE;
-    fwrite(&status, 1, 1, fs);
+    byteBTree status;
+    fread(&status, 1, 1, fs);
+    if(status == INCONSISTENTE){ // se estiver inconsistente, fecha o arquivo e retorna nulo.
+        if(fclose(fs) != 0){
+            DEBUG("ERRO EM abrir_indice: ERRO AO USAR fclose APÓS CONFIRMAR INCONSISTÊNCIA.\n");
+        }
+        return NULL;
+    }
+
+    // Se o arquivo for aberto para ser escrito, então o status é marcado como inconsistente
+
+    if(escrita){
+        status = INCONSISTENTE;
+        fseek(fs, 0, SEEK_SET);
+        fwrite(&status, 1, 1, fs);
+    }
 
     return fs;    
 }
 
-bool fechar_indice(FILE* indice){
+bool fechar_indice(FILE* indice, bool marcarConsistente){
     if(indice == NULL){
         return true;
     }
 
-    fseek(indice, 0, SEEK_SET);
-    byteBTree status = CONSISTENTE;
-    fwrite(&status, 1, 1, indice);
+    // Marcando o status do arquivo como consistente
+
+    if(marcarConsistente){
+        fseek(indice, 0, SEEK_SET);
+        byteBTree status = CONSISTENTE;
+        fwrite(&status, 1, 1, indice);
+    }
+
+    // Fechando o índice
+
     if(fclose(indice) != 0){
+        DEBUG("ERRO EM fechar_indice: ERRO AO USAR fclose NO ARQUIVO DE ÍNDICE.\n");
         return false;
     }
 
@@ -31,15 +60,19 @@ bool fechar_indice(FILE* indice){
 
 void criar_indice(FILE* arquivo){
 
-    byteBTree cabecalhoInicial[TAM_CABECALHO_BTREE];
-    cabecalhoInicial[BO_status] = CONSISTENTE;
-    set_inteiro(cabecalhoInicial, BO_RRNraiz, -1);
-    set_inteiro(cabecalhoInicial, BO_topo, -1);
-    set_inteiro(cabecalhoInicial, BO_proxRRN, 0);
-    set_inteiro(cabecalhoInicial, BO_nroNos, 0);
+    // Preenchendo o cabeçalho com valores iniciais
 
-    fseek(arquivo, 0, SEEK_SET);
-    fwrite(cabecalhoInicial, TAM_CABECALHO_BTREE, 1, arquivo);
+    byteBTree cabecalhoInicial[TAM_CABECALHO_BTREE]; // alocando buffer na memória
+    cabecalhoInicial[BO_status] = INCONSISTENTE; // status inconsistente pois serão realizadas escritas
+    set_inteiro(cabecalhoInicial, BO_RRNraiz, -1); // não há raiz
+    set_inteiro(cabecalhoInicial, BO_topo, -1); // não há registros removidos
+    set_inteiro(cabecalhoInicial, BO_proxRRN, 0); // próximo RRN é 0
+    set_inteiro(cabecalhoInicial, BO_nroNos, 0); // não há nós
+
+    // Escrevendo no disco:
+
+    fseek(arquivo, 0, SEEK_SET); // voltando ao início do arquivo para escrever o cabeçalho
+    fwrite(cabecalhoInicial, TAM_CABECALHO_BTREE, 1, arquivo); // escrevendo o cabeçalho
 }
 
 /**

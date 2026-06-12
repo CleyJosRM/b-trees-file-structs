@@ -10,20 +10,19 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
     FILE* fpDados = NULL;
     FILE* fpIndice = NULL;
 
+    // Abrindo arquivos:
+
     fpDados = abre_binario(arquivoBin, true);
     if(fpDados == NULL){
-        DEBUG("ERRO EM func_9: NÃO CONSEGUIU ABRIR O BINÁRIO DE DADOS %s.\n", arquivoBin);
+        DEBUG("ERRO EM func_9: ERRO AO ABRIR O BINÁRIO E DADOS. PODE ESTAR INCONSISTENTE.\n");
         goto erro;
     }
         
-    fpIndice = abrir_indice(arquivoIndice);
+    fpIndice = abrir_indice(arquivoIndice, true);
     if(fpIndice == NULL){
-        DEBUG("ERRO EM func_9: NÃO CONSEGUIU ABRIR O ARQUIVO DE ÍNDICE %s.\n", arquivoIndice);
+        DEBUG("ERRO EM func_9: ERRO AO ABRIR O ÍNDICE. PODE ESTAR INCONSISTENTE.\n");
         goto erro;
     }
-
-    BinarioNaTela(arquivoBin);
-    BinarioNaTela(arquivoIndice);
 
     // Lendo cabeçalho:
 
@@ -41,77 +40,97 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
     // Lendo cada registro do usuário e inserindo:
 
     for(int i = 0; i < n; i++){
-        REG_DADOS_STRUCT* registro_lido = ler_input_reg();
-        if(registro_lido == NULL){
+
+        // Lendo o registro do usuário:
+
+        REG_DADOS_STRUCT* registroInserir = ler_input_reg();
+        if(registroInserir == NULL){
             DEBUG("ERRO EM func_9: NÃO CONSEGUIU LER O %d-ÉSIMO REGISTRO DADO PELO USUÁRIO.\n", i+1);
             continue;
         }
 
-        int rrnInserido;
+        int rrnInserir;
         long offset;
 
-        offset = buscar_entrada(fpIndice, registro_lido->codEstacao);
-        printf("topo=%d offset=%ld\n", topo, offset);
+        // Verificando se um registro com a mesma chave já existe. Se sim, 
+        // não se deve inserir um novo registro mas sim substituir o antigo, 
+        // pois não podem haver dois registros com mesma chave.
+
+        offset = buscar_entrada(fpIndice, registroInserir->codEstacao);
+        DEBUG("topo=%d offset=%ld\n", topo, offset);
         if(offset != -1){ // se o registro já estiver no índice, portanto, está no arquivo de dados
     
-            DEBUG("O registro com codEstacao %d já existe, está no byteoffset %ld. Substituindo...\n", registro_lido->codEstacao, offset);
-            if( (offset-HEADER_S)%REG_DADOS_S != 0){
+            DEBUG("O registro com codEstacao %d já existe, está no byteoffset %ld. Substituindo...\n", registroInserir->codEstacao, offset);
+            if( (offset-HEADER_S)%REG_DADOS_S != 0){ // verificando se o byteoffset encontrado no índice realmente é possível
                 DEBUG("ERRO EM func_9: BYTEOFFSET ENCONTRADO NO ÍNDICE NÃO APONTA PARA O COMEÇO DE UM REGISTRO DE DADOS.\n");
                 continue;
             }
 
-            rrnInserido = (offset-HEADER_S)/REG_DADOS_S;
+            rrnInserir = (offset-HEADER_S)/REG_DADOS_S; // o RRN onde o registro será inserido deve corresponder ao byteoffset que está marcado no índice
 
-        }else if(topo != -1){
 
-            rrnInserido = topo;
-            offset = (long)rrnInserido * REG_DADOS_S + HEADER_S;
-            fseek(fpDados, offset + 1, SEEK_SET);
+        // Caso não haja registro com a mesma chave
+        // Deve-se verificar se criamos um novo registro com proxRRN ou aproveitamos um removido
+
+        }else if(topo != -1){ // se há registros removidos
+
+            rrnInserir = topo; // o RRN do novo registro é o topo da pilha
+            offset = (long)rrnInserir * REG_DADOS_S + HEADER_S; // offset do registro no topo da pilha
+            fseek(fpDados, offset + 1, SEEK_SET); // apontando para ler o campo "proximo"
+            
             int proximo_na_pilha;
-            if(fread(&proximo_na_pilha, 4, 1, fpDados) != 1){
+            if(fread(&proximo_na_pilha, 4, 1, fpDados) != 1){ // lendo o próximo na pilha. Se falhar, libera a memória e sai da função
                 DEBUG("ERRO EM func_9: NÃO CONSEGUIU LER QUAL O PRÓXIMO NA PILHA.\n");
-                if(registro_lido->nomeEstacao) free(registro_lido->nomeEstacao);
-                if(registro_lido->nomeLinha) free(registro_lido->nomeLinha);
-                free(registro_lido);
+                if(registroInserir->nomeEstacao) free(registroInserir->nomeEstacao);
+                if(registroInserir->nomeLinha) free(registroInserir->nomeLinha);
+                free(registroInserir);
                 goto erro;
             }
             
-            topo = proximo_na_pilha;
+            topo = proximo_na_pilha; // atualizando o topo da pilha. Se não há mais registros removidos, vale -1.
         
+        // Caso contrário, se não há nenhum registro removido:
+
         }else{
         
-            rrnInserido = proxRRN;
-            offset = (long)rrnInserido * REG_DADOS_S + HEADER_S;
+            rrnInserir = proxRRN; // o RRN do novo registro é o proxRRN
+            offset = (long)rrnInserir * REG_DADOS_S + HEADER_S; // calculando o offset do registro novinho em folha
         
-            proxRRN++;
+            proxRRN++; // incrementando proxRRN
         }
+
+        // Escrevendo o registro nos dados e inserindo a entrada cprrespondente no índice
 
         fseek(fpDados, offset, SEEK_SET);
 
-        DEBUG("Escrevendo codEstacao %d no byteoffset %ld\n", registro_lido->codEstacao, offset);
+        DEBUG("Escrevendo codEstacao %d no byteoffset %ld\n", registroInserir->codEstacao, offset);
 
-        if(escreve_registro(registro_lido, fpDados) == false){
-            printf("Falha no processamento do arquivo\n");
+        if(escreve_registro(registroInserir, fpDados) == false){
+            DEBUG("ERRO EM func_9: NÃO CONSEGUIU ESCREVER O REGISTRO.\n");
             goto erro;
         }
 
-        if(registro_lido->codEstacao != -1){
-            inserir_entrada(fpIndice, registro_lido->codEstacao, offset);
+        if(registroInserir->codEstacao != -1){ // codEstacao não pode ser -1 pois esse é o valor usado para indicar "não há chave" na árvore-B
+            inserir_entrada(fpIndice, registroInserir->codEstacao, offset);
         }
 
-        if(registro_lido->nomeEstacao) free(registro_lido->nomeEstacao);
-        if(registro_lido->nomeLinha) free(registro_lido->nomeLinha);
-        free(registro_lido);
+        // Liberando a memória alocada
+
+        if(registroInserir->nomeEstacao) free(registroInserir->nomeEstacao);
+        if(registroInserir->nomeLinha) free(registroInserir->nomeLinha);
+        free(registroInserir);
     }
+
+    // Fechando arquivos e retornando:
+
+    atualizar_cabecalho(fpDados, topo, proxRRN);
 
     if(fecha_binario(fpDados) != 0){
         DEBUG("ERRO EM func_9: FALHA AO FECHAR BINÁRIO DE DADOS.\n");
         goto erro;
     }
 
-    atualizar_cabecalho(arquivoBin, topo, proxRRN);
-
-    if(fechar_indice(fpIndice) == false){
+    if(fechar_indice(fpIndice, true) == false){
         DEBUG("ERRO EM func_9: FALHA AO FECHAR ARQUIVO DE ÍNDICE.\n");
         goto erro;
     }
@@ -124,7 +143,8 @@ void func_9(char* arquivoBin, char* arquivoIndice, int n){
     erro:
 
     printf("Falha no processamento do arquivo.\n");
-    if(fpIndice != NULL) fechar_indice(fpIndice);
-    if(fpDados != NULL) fecha_binario(fpDados);
+    fechar_indice(fpIndice, true);
+    fecha_binario(fpDados);
+
     return;
 }

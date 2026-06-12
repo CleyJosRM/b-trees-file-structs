@@ -5,48 +5,33 @@
 #include "core/datamanager.h"
 
 void func_10(char* arquivoBin, char* arquivoIndice, int n){
+
     REG_DADOS_STRUCT* registros_de_busca = NULL;
     int* mask = NULL;
+    FILE* fpDados = NULL;
+    FILE* fpIndice = NULL;
 
-    FILE* fpDados = abre_binario(arquivoBin, true);
+    fpDados = abre_binario(arquivoBin, true);
     if(fpDados == NULL){
-        printf("Falha no processamento do arquivo.\n");
         DEBUG("ERRO EM func_10: NÃO CONSEGUIU ABRIR O BINÁRIO DE DADOS %s.\n", arquivoBin);
-        return;
+        goto erro;
     }
 
-    FILE* fpIndice = fopen(arquivoIndice, "rb+");
+    fpIndice = abrir_indice(arquivoIndice, true);
     if(fpIndice == NULL){
-        printf("Falha no processamento do arquivo.\n");
         DEBUG("ERRO EM func_10: NÃO CONSEGUIU ABRIR O ARQUIVO DE ÍNDICE %s.\n", arquivoIndice);
-        fecha_binario(fpDados);
-        return;
+        goto erro;
     }
-
-    char status;
-    if(fread(&status, 1, 1, fpIndice) != 1 || status != '1'){
-        printf("Falha no processamento do arquivo.\n");
-        DEBUG("ERRO EM func_10: O ARQUIVO DE ÍNDICE %s ESTÁ COM STATUS INVÁLIDO.\n", arquivoIndice);
-        fecha_binario(fpDados);
-        fclose(fpIndice);
-        return;
-    }
-
-    // marca o arquivo de indice como inconsistente
-    unsigned char status_inc = '0';
-    fseek(fpIndice, 0, SEEK_SET);
-    fwrite(&status_inc, 1, 1, fpIndice);
 
     registros_de_busca = (REG_DADOS_STRUCT*)malloc(n*sizeof(REG_DADOS_STRUCT));
     mask = (int*)calloc(n, sizeof(int));
     if(registros_de_busca == NULL || mask == NULL){
-        printf("Falha no processamento do arquivo.\n");
         DEBUG("ERRO EM func_10: NÃO CONSEGUIU ALOCAR MEMÓRIA PARA OS REGISTROS DE BUSCA OU O MASK.\n");
         fclose(fpIndice);
         if(registros_de_busca) free(registros_de_busca);
         if(mask) free(mask);
         fecha_binario(fpDados);
-        return;
+        goto erro;
     }
 
     for(int i = 0; i < n; i++){
@@ -56,13 +41,12 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
     int topoPilha, proxRRN;
     fseek(fpDados, 1, SEEK_SET);
     if(fread(&topoPilha, 4, 1, fpDados) != 1 || fread(&proxRRN, 4, 1, fpDados) != 1){
-        printf("Falha no processamento do arquivo.\n");
         DEBUG("ERRO EM func_10: NÃO CONSEGUIU LER O TOPO DA PILHA OU O proxRRN NO CABEÇALHO DO BINÁRIO DE DADOS.\n");
         fclose(fpIndice);
         free(registros_de_busca);
         free(mask);
         fecha_binario(fpDados);
-        return;
+        goto erro;
     }
 
     unsigned char removido_flag = '1';
@@ -105,7 +89,7 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
                         topoPilha = RRN;
 
                         // Depois remove a entrada do índice Árvore-B.
-                        if(registro_remocao.codEstacao != -1){
+                        if(registro_remocao.codEstacao != -1){ // codEstacao não pode ser -1 pois esse é o valor usado para indicar "não há chave" na árvore-B
                             DEBUG("Registro no RRN %d corresponde aos campos de busca. Removendo chave %d da Árvore-B.\n", RRN, registro_remocao.codEstacao);
                             remover_chave_arvoreB(fpIndice, registro_remocao.codEstacao);
                         }
@@ -123,25 +107,30 @@ void func_10(char* arquivoBin, char* arquivoIndice, int n){
         if(mask[i] & 128) free(registros_de_busca[i].nomeLinha);
     }
 
-    if(fecha_binario(fpDados) != 0){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(fpIndice);
-        free(registros_de_busca);
-        free(mask);
-        return;
-    }
-    
-    atualizar_cabecalho(arquivoBin, topoPilha, proxRRN);
+    atualizar_cabecalho(fpDados, topoPilha, proxRRN);
 
-    if(fecha_binario(fpIndice) != 0){
-        printf("Falha no processamento do arquivo.\n");
-        free(registros_de_busca);
-        free(mask);
-        return;
+    if(fecha_binario(fpDados) != 0){
+        DEBUG("ERRO EM func_10: ERRO AO FECHAR BIN %s\n", arquivoBin);
+        goto erro;
+    }
+
+    if(fechar_indice(fpIndice, true) == false){
+        DEBUG("ERRO EM func_10: ERRO AO FECHAR INDICE %s\n", arquivoIndice);
+        goto erro;
     }
     free(registros_de_busca);
     free(mask);
 
     BinarioNaTela(arquivoBin);
     BinarioNaTela(arquivoIndice);
+
+    return;
+
+    erro:
+
+    printf("Falha no processamento do arquivo.\n");
+    free(registros_de_busca);
+    free(mask);
+    fecha_binario(fpDados);
+    fechar_indice(fpIndice, true);
 }

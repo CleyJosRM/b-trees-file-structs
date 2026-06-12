@@ -38,12 +38,13 @@ Gerencia as estruturas de dados relacionadas.
 	/**Objetivo: atualizar o cabeçalho de um arquivo binário, recontando os registros e marcando-o como consistente
 	 * 
 	 * Pré-condições:
+	 * 		Filestream aberta em modo que permita leitura e escrita
 	 *      topo e proxRRN devem ser calculados corretamente pela função chamadora
 	 * 
 	 * Pós-condições:
-	 *      arquivo fechado com status consistente 
+	 *      cabeçalho atualizado
 	 **/
-	void atualizar_cabecalho(char* arquivoBin, int topo, int proxRRN);
+	void atualizar_cabecalho(FILE* arquivoBin, int topo, int proxRRN);
 
 	/**Objetivo: extrair um registro de dados do disco e colocar na memória
 	 * 
