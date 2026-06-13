@@ -1,5 +1,9 @@
+// Cleyton Jose Rodrigues Macedo 16821725
+// Guilherme Cavalcanti de Santana 15456556
+
 #include "arvoreb/arvoreb_interna.h"
 
+// Dado um nome de arquivo e modo, abre o arquivo de índice, tratando o status conforme especificação.
 FILE* abrir_indice(char* nomeIndice, char* modo){  
 
     // Verificando o modo correto:
@@ -44,6 +48,7 @@ FILE* abrir_indice(char* nomeIndice, char* modo){
     return fs;    
 }
 
+// Dado uma filestream e um modo, fecha o arquivo tratando status conforme especificação.
 bool fechar_indice(FILE* indice, char* modo){
     if(indice == NULL){
         return true;
@@ -69,6 +74,7 @@ bool fechar_indice(FILE* indice, char* modo){
     return true;
 }
 
+// Preenche os primeiros bytes do arquivo com o cabeçalho, inicializando os campos
 void criar_indice(FILE* arquivo){
 
     // Preenchendo o cabeçalho com valores iniciais
@@ -86,12 +92,7 @@ void criar_indice(FILE* arquivo){
     fwrite(cabecalhoInicial, TAM_CABECALHO_BTREE, 1, arquivo); // escrevendo o cabeçalho
 }
 
-/**
- * Escreve os valores iniciais de um nó com tipo especificado em um buffer na memória principal.
- * É necessário fornecer o cabeçalho da árvore-B para obter o RRN do novo nó (seja topo da pilha de removidos ou proxRRN)
- * É necessário fornecer a filestream da árvore-B para carregar o topo da pilha de removidos se necessário
- * Retorna o RRN do novo nó
- */
+// Documentação em arvoreb_interna.h
 int criar_no(byteBTree* novoNo, FILE* arvoreB, byteBTree* cabecalho, int tipoNo){
     
     // Inicializando valores do nó:
@@ -128,19 +129,4 @@ int criar_no(byteBTree* novoNo, FILE* arvoreB, byteBTree* cabecalho, int tipoNo)
 
     return RRNnovoNo;
     
-}
-
-void empilhar_pagina_livre(FILE* arvoreB, byteBTree* cabecalho, int rrnPagina){
-    byteBTree pagina[TAM_NO_BTREE];
-    // Lê o conteúdo atual do nó do disco para preservá-lo.
-    // Apenas os campos 'removido' e 'proximo' são alterados; o restante
-    // (tipoNo, nroChaves, chaves, PRs, filhos) permanece com o último estado válido.
-    carregar_no(pagina, arvoreB, rrnPagina);
-
-    pagina[BO_removido] = '1';
-    set_inteiro(pagina, BO_proximo, get_inteiro(cabecalho, BO_topo));
-
-    armazenar_no(arvoreB, pagina, rrnPagina);
-    set_inteiro(cabecalho, BO_topo, rrnPagina);
-    inc_inteiro(cabecalho, BO_nroNos, -1);
 }

@@ -1,11 +1,9 @@
-#include "../../include/arvoreb/arvoreb_interna.h"
+// Cleyton Jose Rodrigues Macedo 16821725
+// Guilherme Cavalcanti de Santana 15456556
 
-/**
- * Busca uma chave em um nó da árvore B em memória principal.
- * Retorna se a chave foi encontrada ou não, e escreve um inteiro no endereço fornecido.
- * Se a chave foi encontrada, esse inteiro é o byte offset de dados.
- * Se a chave não foi encontrada, esse inteiro é o RRN do nó descendente onde a chaveBusca pode estar.
- */
+#include "arvoreb/arvoreb_interna.h"
+
+// Documentação em arvoreb_interna.h
 bool percorrer_no(int* ret, const byteBTree* no, int chaveBusca){
 
         int chaveAtual = get_inteiro(no, BO_C1); // C1

@@ -1,4 +1,7 @@
-#include "../../include/arvoreb/arvoreb_interna.h"
+// Cleyton Jose Rodrigues Macedo 16821725
+// Guilherme Cavalcanti de Santana 15456556
+
+#include "arvoreb/arvoreb_interna.h"
 
 // Insere uma nova entrada em nó não cheio, deslocando as entradas conforme necessário para mantê-las ordenadas
 static void inserir_entrada_em_no_shiftada(byteBTree* no, ENTRADA_INDICE novaEntrada){

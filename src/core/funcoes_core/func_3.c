@@ -52,12 +52,12 @@ bool func_3(FILE* arquivoBin, int n){
     free(registros_de_busca);
     free(mask);
 
-    return false;
+    return true;
 
     erro:
 
     free(registros_de_busca);
     free(mask);
 
-    return true;
+    return false;
 }

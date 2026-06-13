@@ -10,6 +10,10 @@
 
 int main(void){ // não receberemos argumentos da linha de comando
 
+
+	// LENDO COMANDO E PARSE DO INPUT
+
+
 	char comando_usuario[500]; // buffer para armazenar o comando do usuario que invoca as funcionalidades
 	fgets(comando_usuario, sizeof(comando_usuario), stdin); // fgets é melhor que scanf pois verifica o tamanho do buffer e não para quando encontra o espaço. Inclui \n.
 	comando_usuario[strcspn(comando_usuario, "\n")] = 0;
@@ -17,9 +21,11 @@ int main(void){ // não receberemos argumentos da linha de comando
 	int funcionalidade; // armazena o código de 1 a 6 da funcionalidade que o usuário quer usar
 	funcionalidade = atoi(strtok(comando_usuario, " ")); // começa a interpretar o comando: extrai o primeiro trecho delimitado por espaço, e transforma em inteiro
 	
-	char* token1 = strtok(NULL, " ");
-	char* token2 = strtok(NULL, " ");
-	char* token3 = strtok(NULL, " ");
+	char* token1 = strtok(NULL, " "); // segundo trecho 
+	char* token2 = strtok(NULL, " "); // terceiro trecho 
+	char* token3 = strtok(NULL, " "); // quarto trecho (se houver)
+
+	// DECIDINDO QUAIS ARQUIVOS SERÃO ABERTOS E EM QUE MODO
 
 	FILE* arquivoCSV = NULL;
 	FILE* arquivoDados = NULL;
@@ -71,6 +77,8 @@ int main(void){ // não receberemos argumentos da linha de comando
         default:
             return 1;
     }
+
+    // ABRINDO OS ARQUIVOS
 
     if(modoCSV){
     	arquivoCSV = fopen(nomeCSV, modoCSV);
@@ -140,15 +148,15 @@ int main(void){ // não receberemos argumentos da linha de comando
 			break;
 	}
 
-	// Fechando os arquivos
+	// FECHANDO OS ARQUIVOS
 
 	if(arquivoCSV != NULL) fclose(arquivoCSV);
     fecha_binario(arquivoDados, modoDados);
     fechar_indice(arquivoIndice, modoIndice);
 
-    // Binário na tela !!!
+    // BINÁRIO NA TELA !!!
 
-    if(funcionalidade != 8 && funcionalidade != 7) {
+    if(funcionalidade != 3 && funcionalidade != 2 && funcionalidade != 8 && funcionalidade != 7) {
         BinarioNaTela(nomeDados);
     }
     if(funcionalidade != 8 && funcionalidade >= 7) {

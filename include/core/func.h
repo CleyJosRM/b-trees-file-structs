@@ -86,12 +86,12 @@
 	 * @brief Funcionalidade [8]: Recupera registros de acordo com critérios de busca.
 	 * Usa o índice árvore-B sempre que a busca incluir o campo codEstacao.
 	 * Para buscas sem codEstacao, faz busca sequencial como a funcionalidade 3.
-	 * @param arquivoEntrada Filestream do arquivo de dados binário.
+	 * @param arquivoDados Filestream do arquivo de dados binário.
 	 * @param arquivoIndice Filestream do arquivo de índice árvore-B.
 	 * @param n Quantidade de buscas a serem realizadas.
 	 * @return bool true se sucesso, false se fracasso
 	 */
-	bool func_8(FILE* arquivoEntrada, FILE* arquivoIndice, int n);
+	bool func_8(FILE* arquivoDados, FILE* arquivoIndice, int n);
 
 	/**
 	 * @brief Funcionalidade [9]: Remove logicamente registros com base em buscas.

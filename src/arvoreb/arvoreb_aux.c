@@ -1,14 +1,8 @@
-#include "../../include/arvoreb/arvoreb_interna.h"
+// Cleyton Jose Rodrigues Macedo 16821725
+// Guilherme Cavalcanti de Santana 15456556
+
+#include "arvoreb/arvoreb_interna.h"
 #include <string.h>
-
-
-
-
-
-bool no_pode_emprestar(byteBTree* no){
-    return get_inteiro(no, BO_nroChaves) > NUM_MIN_CHAVES;
-}
-
 
 
 

@@ -9,6 +9,7 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
     REG_DADOS_STRUCT* registros_de_busca = NULL;
     int* mask = NULL;
 
+    // Lendo os n registros de busca e seus respectivos masks para depois realizar as remoções
     registros_de_busca = (REG_DADOS_STRUCT*)calloc(n, sizeof(REG_DADOS_STRUCT));
     mask = (int*)calloc(n, sizeof(int));
     if(registros_de_busca == NULL || mask == NULL){
@@ -37,9 +38,10 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
             if(byteOffset != -1){
                 DEBUG("Registro encontrado no índice Árvore-B com byteOffset %d. Verificando se o registro corresponde aos outros campos de busca...\n", byteOffset);
                 int rrnIndice = (byteOffset - HEADER_S) / REG_DADOS_S;  // Conversão "byte offset" para "RRN"
-                if(check_registro(&registros_de_busca[i], mask[i], rrnIndice, arquivoBin)){
+                if(check_registro(&registros_de_busca[i], mask[i], rrnIndice, arquivoBin)){ // Checa se demais entradas são compativeis com a busca
                     DEBUG("Registro encontrado no índice Árvore-B corresponde aos outros campos de busca. Removendo...\n");
                     
+                    // Remove o registro no arquivo de dados
                     fseek(arquivoBin, HEADER_S + rrnIndice * REG_DADOS_S, SEEK_SET);
                     fwrite(&removido_flag, 1, 1, arquivoBin);
                     fwrite(&topoPilha, 4, 1, arquivoBin);
@@ -48,15 +50,12 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
                     remover_chave_arvoreB(arquivoIndice, registros_de_busca[i].codEstacao);
                 }
             }
-        } else {
-            DEBUG("Busca não envolve a chave primária. Realizando busca sequencial no arquivo de dados.\n");
-            // Caso contrário, faz busca sequencial no arquivo de dados
+        } else { // Caso contrário, faz busca sequencial no arquivo de dados
+
             for(int RRN = 0; RRN < proxRRN; RRN++){
-                DEBUG("RRN = %d, proxRRN = %d\n", RRN, proxRRN);
                 if(check_registro(&registros_de_busca[i], mask[i], RRN, arquivoBin)){
                     REG_DADOS_STRUCT registro_remocao;
                     fseek(arquivoBin, HEADER_S + RRN * REG_DADOS_S, SEEK_SET);
-                    DEBUG("Verificando registro no RRN %d.\n", RRN);
                     // Precisamos ler o registro para saber qual chave deletar da Árvore-B
                     if(load_registro(arquivoBin, &registro_remocao)){
                         // Primeiro marca o registro de dados como logicamente removido.
@@ -71,6 +70,8 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
                             DEBUG("Registro no RRN %d corresponde aos campos de busca. Removendo chave %d da Árvore-B.\n", RRN, registro_remocao.codEstacao);
                             remover_chave_arvoreB(arquivoIndice, registro_remocao.codEstacao);
                         }
+
+                        // limpa memória alocada para strings do registro de remoção, se necessário
                         if(registro_remocao.nomeEstacao){ free(registro_remocao.nomeEstacao); registro_remocao.nomeEstacao = NULL; }
                         if(registro_remocao.nomeLinha){ free(registro_remocao.nomeLinha); registro_remocao.nomeEstacao = NULL; }
                     }
@@ -84,6 +85,7 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
 
     atualizar_cabecalho(arquivoBin, topoPilha, proxRRN);
 
+    // limpa todos os registros de busca e o mask da memória
     for(int i=0; i<n; i++){
         if(registros_de_busca[i].nomeEstacao != NULL) free(registros_de_busca[i].nomeEstacao);
         if(registros_de_busca[i].nomeLinha != NULL) free(registros_de_busca[i].nomeLinha);
@@ -95,6 +97,7 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
 
     erro:
 
+    // limpa memória em caso de erro
     if(registros_de_busca != NULL){
         for(int i=0; i<n; i++){
             if(registros_de_busca[i].nomeEstacao != NULL) free(registros_de_busca[i].nomeEstacao);
