@@ -458,15 +458,6 @@ bool check_entrada_nula(ENTRADA_INDICE entrada);
  */
 int comparar_entradas(const void *entrada1, const void *entrada2);
 
-/**
- * @brief   Testa se um nó pode emprestar uma entrada para um irmão
- *
- * @param[in]   no  Ponteiro para buffer de nó
- *
- * @return  true se nó tem mais de NUM_MIN_CHAVES entradas
- * @return  false caso contrário
- */
-bool no_pode_emprestar(byteBTree *no);
 
 /* ========================================================================== */
 /*                      FUNÇÕES DE CRIAÇÃO DE NÓS                            */

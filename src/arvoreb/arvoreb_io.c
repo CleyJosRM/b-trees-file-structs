@@ -8,8 +8,7 @@
  *
  * @details
  * 
- * Em todas as funções, é fornecida uma filestream para acessar o arquivo
- *   e o endereço de um buffer na memória onde os bytes serão lidos/escritos.
+ * Em todas as funções, é fornecida uma filestream para acessar o arquivo e o endereço de um buffer na memória onde os bytes serão lidos/escritos.
  * As funções do tipo "carregar" lêem bytes do disco e os escrevem na memória principal.
  * As funções do tipo "armazenar" lêem bytes da memória principal e os escrevem no disco.
  * As permissões da filestream devem ser adequadas e o buffer deve conter espaço suficiente.

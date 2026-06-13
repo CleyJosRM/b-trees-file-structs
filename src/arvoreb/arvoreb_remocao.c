@@ -99,6 +99,15 @@ static int obter_folha_sucessora(FILE* arvoreB, int rrnInicial, byteBTree* folha
  *     chave do pai desce para o filho; maior chave do irmão sobe para o pai.
  * ------------------------------------------------------------------------- */
 
+
+/*
+ * Testa se um nó pode emprestar uma entrada para um irmão
+ * Recebe um ponteiro para buffer de nó e retorna true se nó tem mais de NUM_MIN_CHAVES entradas, false caso contrário.
+ */
+ static bool no_pode_emprestar(byteBTree* no){
+    return get_inteiro(no, BO_nroChaves) > NUM_MIN_CHAVES;
+}
+
 /* 
  * Rotação à direita: move uma chave do PAI para o FILHO deficiente e sobe
  * a menor chave do IRMÃO direito para o PAI.
