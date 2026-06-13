@@ -1,47 +1,33 @@
+// Cleyton José Rodrigues Macedo 16821725
+// Guilherme Cavalcanti de Santana 15456556
+
 #include "core/definicoes.h"
 #include "core/datamanager.h"
 
-void func_7(char* arquivoDados, char* arquivoIndice) {
-    FILE* fpDados = abre_binario(arquivoDados, false);
-    if (!fpDados) {
-        printf("Falha no processamento do arquivo.\n");
-        return;
-    }
+bool func_7(FILE* arquivoDados, FILE* arquivoIndice) {
+    
+    REG_DADOS_STRUCT registro = {0};
 
-    FILE* fpIndice = fopen(arquivoIndice, "wb+");
-    if (!fpIndice) {
-        printf("Falha no processamento do arquivo.\n");
-        fecha_binario(fpDados);
-        return;
-    }
+    // Criando o índice e inserindo as entradas
 
-    criar_indice(fpIndice); // Cria a árvore B (arquivo de índice)
+    criar_indice(arquivoIndice); // Preenche o cabeçalho com valores iniciais
 
-    fseek(fpDados, HEADER_S, SEEK_SET);
-    REG_DADOS_STRUCT registro;
+    fseek(arquivoDados, HEADER_S, SEEK_SET); // apontando para a posição do primeiro registro de dados
+    registro = (REG_DADOS_STRUCT){0};
     int rrn = 0;
 
-    while (load_registro(fpDados, &registro)) {
-        if (registro.removido == '0' && registro.codEstacao != -1) {
-            inserir_entrada(fpIndice, registro.codEstacao, HEADER_S + rrn * REG_DADOS_S);        }
+    while (load_registro(arquivoDados, &registro)) { // lendo um registro do arquivo de dados, movendo o file pointer para o próximo
+        if (registro.removido == '0' && registro.codEstacao != -1) { // codEstacao não pode ser -1 pois esse é o valor usado para indicar "não há chave" na árvore-B
+            inserir_entrada(arquivoIndice, registro.codEstacao, HEADER_S + rrn * REG_DADOS_S);
+        }
 
-        free(registro.nomeEstacao);
+        free(registro.nomeEstacao); // apagando os nomes
         free(registro.nomeLinha);
-        rrn++;
+        registro.nomeEstacao = NULL;
+        registro.nomeLinha = NULL;
+        rrn++; // RRN do próximo registro a ser lido (se houver)
     }
 
-    fseek(fpIndice, 0, SEEK_SET);
-    char status = '1';
-    fwrite(&status, 1, 1, fpIndice);
+    return true;
 
-    fecha_binario(fpDados);
-    fclose(fpIndice);
-
-    BinarioNaTela(arquivoIndice);
-
-    #ifdef PRINT_ERROS
-    ExibirBinario(arquivoIndice);
-    #endif
-
-    return;
 }

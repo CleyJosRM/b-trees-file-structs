@@ -118,6 +118,9 @@ e funções auxiliares que podem ser usadas por todo o código.
 	 **/
 	REG_DADOS_STRUCT* ler_input_reg();
 
+	// Dado uma string, verificar se ela corresponde a um dos seguintes modos: rb, rb+, wb, wb+
+	bool modo_eh_valido(char* modo);
+
 	// Função para debug
 	void ExibirBinario(char *arquivo);
 

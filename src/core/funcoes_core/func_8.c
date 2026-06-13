@@ -4,59 +4,42 @@
 #include "core/definicoes.h"
 #include "core/datamanager.h"
 
-void func_8(char* arquivoBin, char* arquivoIndice, int n){
-    FILE* fpDados = abre_binario(arquivoBin, false);
-    if(fpDados == NULL){
-        printf("Falha no processamento do arquivo.\n");
-        return;
-    }
+bool func_8(FILE* arquivoBin, FILE* arquivoIndice, int n){
+    
+    REG_DADOS_STRUCT registro_busca = {0}; // inicializando com zero para liberar memória seguramente
 
-    FILE* fpIndice = fopen(arquivoIndice, "rb");
-    if(fpIndice == NULL){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(fpDados);
-        return;
-    }
+    // Lendo campos de busca n vezes e realizando a busca no binário de dados:
 
-    char status;
-    if(fread(&status, 1, 1, fpIndice) != 1 || status != '1'){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(fpDados);
-        fclose(fpIndice);
-        return;
-    }
-
+    registro_busca = (REG_DADOS_STRUCT){0}; // inicializando com zero para liberar memória seguramente
+    int mask = 0; // inicializando com zero para liberar memória seguramente
     int topoPilha, proxRRN;
     for(int i = 0; i < n; i++){
-        REG_DADOS_STRUCT registro_busca;
-        int mask;
+
         ler_campos(&registro_busca, &mask);
 
         bool flag_encontrou = false;
 
         if(mask & 1){
-            int byteOffset = buscar_entrada(fpIndice, registro_busca.codEstacao);
+            int byteOffset = buscar_entrada(arquivoIndice, registro_busca.codEstacao);
             if (byteOffset != -1) {
                 int rrn = (byteOffset - HEADER_S) / REG_DADOS_S;  // convert byte offset → RRN
-                if (check_registro(&registro_busca, mask, rrn, fpDados)) {
-                    fseek(fpDados, byteOffset, SEEK_SET);  // or: rrn * REG_DADOS_S + HEADER_S
-                    print_registro(fpDados);
+                if (check_registro(&registro_busca, mask, rrn, arquivoBin)) {
+                    fseek(arquivoBin, byteOffset, SEEK_SET);  // or: rrn * REG_DADOS_S + HEADER_S
+                    print_registro(arquivoBin);
                     flag_encontrou = true;
                 }
             }
         } else {
-            fseek(fpDados, 1, SEEK_SET);
-            if(fread(&topoPilha, 4, 1, fpDados) != 1 || fread(&proxRRN, 4, 1, fpDados) != 1){
-                fclose(fpDados);
-                fclose(fpIndice);
-                printf("Falha no processamento do arquivo.\n");
-                return;
+            fseek(arquivoBin, 1, SEEK_SET);
+            if(fread(&topoPilha, 4, 1, arquivoBin) != 1 || fread(&proxRRN, 4, 1, arquivoBin) != 1){
+                DEBUG("ERRO EM func_8: NÃO CONSEGUIU LER topo DA PILHA E proxRRN.\n");
+                goto erro;
             }
 
             for(int RRN = 0; RRN < proxRRN; RRN++){
-                if(check_registro(&registro_busca, mask, RRN, fpDados)){
-                    fseek(fpDados, RRN * REG_DADOS_S + HEADER_S, SEEK_SET);
-                    print_registro(fpDados);
+                if(check_registro(&registro_busca, mask, RRN, arquivoBin)){
+                    fseek(arquivoBin, RRN * REG_DADOS_S + HEADER_S, SEEK_SET);
+                    print_registro(arquivoBin);
                     flag_encontrou = true;
                 }
             }
@@ -66,15 +49,17 @@ void func_8(char* arquivoBin, char* arquivoIndice, int n){
         printf("\n");
 
         if(mask & 64) free(registro_busca.nomeEstacao);
+        registro_busca.nomeEstacao = NULL;
         if(mask & 128) free(registro_busca.nomeLinha);
+        registro_busca.nomeLinha = NULL;
     }
 
-    if(fecha_binario(fpDados) != 0){
-        DEBUG("DEBUG: ERRO AO FECHAR BIN %s\n", arquivoBin);
-        printf("Falha no processamento do arquivo.\n");
-    }
-    if(fecha_binario(fpIndice) != 0){
-        DEBUG("DEBUG: ERRO AO FECHAR INDICE %s\n", arquivoIndice);
-        printf("Falha no processamento do arquivo.\n");
-    }
+    return true;
+
+    erro:
+
+    if(mask & 64) free(registro_busca.nomeEstacao);
+    if(mask & 128) free(registro_busca.nomeLinha);
+
+    return false;
 }

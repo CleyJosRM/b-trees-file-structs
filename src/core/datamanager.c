@@ -144,72 +144,94 @@ static const TABELA_FUNCOES nroParesEstacaoItemFuncoes = {
 
 
 
-/**Objetivo: abrir um arquivo binário em modo especificado do Banco de Dados.  
- * 
- * Pré-condições: 
- *      O caminho/nome do arquivo deve existir e ter as permissões necessárias
- *      A necessidade de permissão de atualização (escrita) deve ser explicitada no parâmetro
- *      O status do arquivo deve ser '1'
- * 
- * Pós condições: 
- *      Erro: retorna nulo
- *      Sucesso: retorna filestream do arquivo com o modo especificado, status '0' se for de atualização. Abrir em modo de leitura não afeta o status.
- *      Chamador deve: fechar a filestream com a função fecha_binario() para impor status '1', se necessário.
- */
-FILE* abre_binario(char* arquivoBin, bool escrita){
-    
-    char* modo = escrita ? "rb+" : "rb";
+bool modo_eh_valido(char* modo){
 
-    // abre o arquivo bin em modo leitura
-    FILE* filestream_bin = fopen(arquivoBin, modo);
-    if(filestream_bin == NULL){ // se falhou
-        DEBUG("ERRO EM abre_binario: ERRO AO ABRIR O BINÁRIO %s. VERIFIQUE EXISTÊNCIA E PERMISSÕES.\n", arquivoBin);
-        return NULL;
+    char* modos_possiveis[] = {"rb", "rb+", "wb", "wb+"};
+    // contador inicializado como long unsigned int para o compilador parar de reclamar
+    for(long unsigned int i=0; i < sizeof(modos_possiveis)/sizeof(char*); i++){
+        if(strcmp(modo, modos_possiveis[i]) == 0)
+            return true;
     }
-
-    // Lê o status do arquivo
-    unsigned char status;
-    fread(&status, 1, 1, filestream_bin);
-    if(status != '1'){
-        DEBUG("ERRO EM abre_binario: ARQUIVO %s INCONSISTENTE. NÃO FOI POSSÍVEL ABRIR.\n", arquivoBin);
-        fclose(filestream_bin);
-        return NULL;
-    }
-
-    if(escrita){
-        // Reescreve o status do arquivo
-        fseek(filestream_bin, 0, SEEK_SET);
-        status = '0';
-        fwrite(&status, 1, 1, filestream_bin);
-    }
-    fseek(filestream_bin, 0, SEEK_SET); // Voltando ao começo
-
-    return filestream_bin;
+    return false;
 }
 
-/**Objetivo: escrever um registro de dados no arquivo binário
- * 
- * Pré-condições:
- *      Filestream binária em modo de atualização
- *      Cursor em uma posição compatível com o início de um registro de dados
- *      O registro a ser inserido deve ser válido
- * 
- * Pós-condições:
- *      Erro: retorna false, sem alterar a posição do cursor
- *      Sucesso: retorna true, com o cursor apontado para a posição do próximo registro de dados
- *      Chamador deve: apagar a struct e fechar o arquivo com fecha_binario
- **/
-bool escreve_registro(REG_DADOS_STRUCT* registro_lido, FILE* filestream_bin){
-    if(registro_lido == NULL){
+FILE* abre_binario(char* nome, char* modo){
+    
+    // Verificando o modo correto:
+    if(modo == NULL || modo_eh_valido(modo) == false){
+        DEBUG("ERRO EM abre_binario: NÃO É UM MODO VÁLIDO.\n");
+        return NULL;
+    }
+
+    // Abrindo o arquivo
+    FILE* arquivoDados = fopen(nome, modo);
+    if(arquivoDados == NULL){
+        DEBUG("ERRO EM abre_binario: ERRO AO ABRIR O BINÁRIO. VERIFIQUE EXISTÊNCIA E PERMISSÕES.\n");
+        return NULL;
+    }
+
+    // Verificando se o status está consistente
+    if(strcmp(modo, "wb+") != 0){ // arquivos novos não tem status para serem lidos
+        fseek(arquivoDados, 0, SEEK_SET);
+        unsigned char status;
+        
+        if (fread(&status, 1, 1, arquivoDados) == 1) {
+            if(status != '1'){ // Se for diferente de consistente, fecha e retorna NULL
+                DEBUG("ERRO EM abre_binario: ARQUIVO INCONSISTENTE. NÃO FOI POSSÍVEL ABRIR.\n");
+                fclose(arquivoDados);
+                return NULL;
+            }
+        }
+    }
+
+    // Se o arquivo for aberto para escrita, marca o status como inconsistente
+    bool escrita = (strcmp(modo, "rb") == 0) ? false : true;
+
+    if(escrita){
+        unsigned char status = '0';
+        fseek(arquivoDados, 0, SEEK_SET);
+        fwrite(&status, 1, 1, arquivoDados);
+    }
+
+    fseek(arquivoDados, 0, SEEK_SET); // Garante o ponteiro no início 
+    return arquivoDados;
+}
+
+int fecha_binario(FILE* arquivoDados, char* modo){
+    if(arquivoDados == NULL){
+        return 0;
+    }
+
+    // Se o modo foi aberto apenas para leitura, o status não deve ser alterado
+    bool marcarConsistente = (strcmp(modo, "rb") == 0) ? false : true; 
+
+    // Marcando o status do arquivo como consistente
+    if(marcarConsistente){
+        fseek(arquivoDados, 0, SEEK_SET);
+        unsigned char status_consistente = '1';
+        fwrite(&status_consistente, 1, 1, arquivoDados);
+    }
+
+    // Fechando o arquivo binário
+    if(fclose(arquivoDados) != 0){
+        DEBUG("ERRO EM fecha_binario: ERRO AO USAR fclose NO ARQUIVO BINÁRIO.\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+bool escreve_registro(REG_DADOS_STRUCT* registroInserir, FILE* arquivoDados){
+    if(registroInserir == NULL){
         DEBUG("ERRO EM escreve_registro: REGISTRO NULO.\n");
         return false;
     }
-    if(filestream_bin == NULL){
+    if(arquivoDados == NULL){
         DEBUG("ERRO EM escreve_registro: FILESTREAM NULA.\n");
         return false;
     }
 
-    long pos_inicial = ftell(filestream_bin);   
+    long pos_inicial = ftell(arquivoDados);   
     if( (pos_inicial - HEADER_S)%REG_DADOS_S != 0 ){
         DEBUG("ERRO EM escreve_registro: CURSOR DE ARQUIVO NÃO ESTÁ NO INÍCIO DE UM REGISTRO DE DADOS.\n");
         return false;
@@ -217,59 +239,47 @@ bool escreve_registro(REG_DADOS_STRUCT* registro_lido, FILE* filestream_bin){
 
     // ESCREVENDO O STRUCT NO BINÁRIO
 
-    if (fwrite(&(registro_lido->removido), 1, 1, filestream_bin) != 1){
+    if (fwrite(&(registroInserir->removido), 1, 1, arquivoDados) != 1){
         DEBUG("DEBUG: ESCRITA DO REGISTRO FALHOU. VERIFIQUE SE O ARQUIVO ESTÁ ABERTO EM MODO DE ESCRITA.\n");
-        fseek(filestream_bin, pos_inicial, SEEK_SET);
+        fseek(arquivoDados, pos_inicial, SEEK_SET);
         return false;
     }
-    fwrite(&(registro_lido->proximo), 1, 4, filestream_bin);
-    fwrite(&(registro_lido->codEstacao), 1, 4, filestream_bin);
-    fwrite(&(registro_lido->codLinha), 1, 4, filestream_bin);
-    fwrite(&(registro_lido->codProxEstacao), 1, 4, filestream_bin);
-    fwrite(&(registro_lido->distProxEstacao), 1, 4, filestream_bin);
-    fwrite(&(registro_lido->codLinhaIntegra), 1, 4, filestream_bin);
-    fwrite(&(registro_lido->codEstIntegra), 1, 4, filestream_bin);
+    fwrite(&(registroInserir->proximo), 1, 4, arquivoDados);
+    fwrite(&(registroInserir->codEstacao), 1, 4, arquivoDados);
+    fwrite(&(registroInserir->codLinha), 1, 4, arquivoDados);
+    fwrite(&(registroInserir->codProxEstacao), 1, 4, arquivoDados);
+    fwrite(&(registroInserir->distProxEstacao), 1, 4, arquivoDados);
+    fwrite(&(registroInserir->codLinhaIntegra), 1, 4, arquivoDados);
+    fwrite(&(registroInserir->codEstIntegra), 1, 4, arquivoDados);
 
-    fwrite(&(registro_lido->tamNomeEstacao), 1, 4, filestream_bin); // armazena o tamanho do nome da estação
-    if(registro_lido->tamNomeEstacao != 0){
-        fwrite(registro_lido->nomeEstacao, 1, registro_lido->tamNomeEstacao, filestream_bin); // como tamNomeEstacao foi inicializado por strlen, o \0 no final não será escrito
+    fwrite(&(registroInserir->tamNomeEstacao), 1, 4, arquivoDados); // armazena o tamanho do nome da estação
+    if(registroInserir->tamNomeEstacao != 0){
+        fwrite(registroInserir->nomeEstacao, 1, registroInserir->tamNomeEstacao, arquivoDados); // como tamNomeEstacao foi inicializado por strlen, o \0 no final não será escrito
     }
 
-    fwrite(&(registro_lido->tamNomeLinha), 1, 4, filestream_bin); // armazena o tamanho do nome da linha
-    if(registro_lido->tamNomeLinha != 0){
-        fwrite(registro_lido->nomeLinha, 1, registro_lido->tamNomeLinha, filestream_bin); // como tamNomeLinha foi inicializado por strlen, o \0 no final não será escrito
+    fwrite(&(registroInserir->tamNomeLinha), 1, 4, arquivoDados); // armazena o tamanho do nome da linha
+    if(registroInserir->tamNomeLinha != 0){
+        fwrite(registroInserir->nomeLinha, 1, registroInserir->tamNomeLinha, arquivoDados); // como tamNomeLinha foi inicializado por strlen, o \0 no final não será escrito
     }
 
-    int num_bytes_lixo = REG_DADOS_S - BYTES_FIXOS_S - registro_lido->tamNomeEstacao - registro_lido->tamNomeLinha; // Calcula o número de bytes a serem preenchidos com lixo
+    int num_bytes_lixo = REG_DADOS_S - BYTES_FIXOS_S - registroInserir->tamNomeEstacao - registroInserir->tamNomeLinha; // Calcula o número de bytes a serem preenchidos com lixo
     char lixo = LIXO;
     for(int i = 0; i < num_bytes_lixo; i++){
-        fwrite(&lixo, 1, 1, filestream_bin);
+        fwrite(&lixo, 1, 1, arquivoDados);
     }
 
     return true;
 }
 
-/**Objetivo: atualizar um registro no arquivo binário
- * 
- * Pré-condições:
- *      Filestream binária em um modo que permita leitura e escrita
- *      RRN dentro dos limites do binário
- *      Struct campos_novos e mask foram inicializados juntos
- * 
- * Pós-condições:
- *      Erro: retorna false, com posição do cursor indeterminada
- *      Sucesso: retorna true, com o cursor apontado para a posição do próximo registro de dados
- *      Chamador deve: apagar a struct e fechar o arquivo com fecha_binario
- **/
-bool atualiza_registro(REG_DADOS_STRUCT *campos_novos, int mask, int RRN, FILE *filestream_bin){
+bool atualiza_registro(REG_DADOS_STRUCT *campos_novos, int mask, int RRN, FILE *arquivoDados){
     if(campos_novos == NULL){
         DEBUG("ERRO EM atualiza_registro: NÃO FOI FORNECIDO O VALOR DOS NOVOS CAMPOS.\n");
         return false;
     }
 
     int proxRRN;
-    fseek(filestream_bin, 5, SEEK_SET);
-    if (fread(&proxRRN, 4, 1, filestream_bin) != 1){
+    fseek(arquivoDados, 5, SEEK_SET);
+    if (fread(&proxRRN, 4, 1, arquivoDados) != 1){
         DEBUG("ERRO EM atualiza_registro: LEITURA FALHOU. VERIFIQUE SE O ARQUIVO ESTÁ ABERTO EM MODO DE LEITURA.\n");
         return false;
     }
@@ -293,28 +303,28 @@ bool atualiza_registro(REG_DADOS_STRUCT *campos_novos, int mask, int RRN, FILE *
     */
 
     if(mask & 1){
-        fseek(filestream_bin, pos_reg + 5, SEEK_SET);
-        fwrite(&(campos_novos->codEstacao), 4, 1, filestream_bin);
+        fseek(arquivoDados, pos_reg + 5, SEEK_SET);
+        fwrite(&(campos_novos->codEstacao), 4, 1, arquivoDados);
     }
     if(mask & 2){
-        fseek(filestream_bin, pos_reg + 9, SEEK_SET);
-        fwrite(&(campos_novos->codLinha), 4, 1, filestream_bin);
+        fseek(arquivoDados, pos_reg + 9, SEEK_SET);
+        fwrite(&(campos_novos->codLinha), 4, 1, arquivoDados);
     }
     if(mask & 4){
-        fseek(filestream_bin, pos_reg + 13, SEEK_SET);
-        fwrite(&(campos_novos->codProxEstacao), 4, 1, filestream_bin);
+        fseek(arquivoDados, pos_reg + 13, SEEK_SET);
+        fwrite(&(campos_novos->codProxEstacao), 4, 1, arquivoDados);
     }
     if(mask & 8){
-        fseek(filestream_bin, pos_reg + 17, SEEK_SET);
-        fwrite(&(campos_novos->distProxEstacao), 4, 1, filestream_bin);
+        fseek(arquivoDados, pos_reg + 17, SEEK_SET);
+        fwrite(&(campos_novos->distProxEstacao), 4, 1, arquivoDados);
     }
     if(mask & 16){
-        fseek(filestream_bin, pos_reg + 21, SEEK_SET);
-        fwrite(&(campos_novos->codLinhaIntegra), 4, 1, filestream_bin);
+        fseek(arquivoDados, pos_reg + 21, SEEK_SET);
+        fwrite(&(campos_novos->codLinhaIntegra), 4, 1, arquivoDados);
     }
     if(mask & 32){
-        fseek(filestream_bin, pos_reg + 25, SEEK_SET);
-        fwrite(&(campos_novos->codEstIntegra), 4, 1, filestream_bin);
+        fseek(arquivoDados, pos_reg + 25, SEEK_SET);
+        fwrite(&(campos_novos->codEstIntegra), 4, 1, arquivoDados);
     }
 
     // ATUALIZANDO CAMPOS STRING
@@ -328,11 +338,11 @@ bool atualiza_registro(REG_DADOS_STRUCT *campos_novos, int mask, int RRN, FILE *
     char nomeEst[64], nomeLinha[64];
 
     // Transferir do disco para a memória os valores atuais:
-    fseek(filestream_bin, pos_reg + 29, SEEK_SET);
-    fread(&tamNomeEst, 4, 1, filestream_bin);
-    fread(nomeEst, 1, tamNomeEst, filestream_bin);
-    fread(&tamNomeLinha, 4, 1, filestream_bin);
-    fread(nomeLinha, 1, tamNomeLinha, filestream_bin);
+    fseek(arquivoDados, pos_reg + 29, SEEK_SET);
+    fread(&tamNomeEst, 4, 1, arquivoDados);
+    fread(nomeEst, 1, tamNomeEst, arquivoDados);
+    fread(&tamNomeLinha, 4, 1, arquivoDados);
+    fread(nomeLinha, 1, tamNomeLinha, arquivoDados);
 
     DEBUG("DEBUG: LENDO NOME E LINHA ANTIGOS: %s\n%s\n", nomeEst, nomeLinha);
 
@@ -356,11 +366,11 @@ bool atualiza_registro(REG_DADOS_STRUCT *campos_novos, int mask, int RRN, FILE *
     }
 
     // Transferindo os valores da memória para o disco
-    fseek(filestream_bin, pos_reg + 29, SEEK_SET);
-    fwrite(&tamNomeEst, 4, 1, filestream_bin);
-    fwrite(nomeEst, 1, tamNomeEst, filestream_bin);
-    fwrite(&tamNomeLinha, 4, 1, filestream_bin);
-    fwrite(nomeLinha, 1, tamNomeLinha, filestream_bin);
+    fseek(arquivoDados, pos_reg + 29, SEEK_SET);
+    fwrite(&tamNomeEst, 4, 1, arquivoDados);
+    fwrite(nomeEst, 1, tamNomeEst, arquivoDados);
+    fwrite(&tamNomeLinha, 4, 1, arquivoDados);
+    fwrite(nomeLinha, 1, tamNomeLinha, arquivoDados);
 
     DEBUG("DEBUG: LENDO NOVO NOME E LINHA: %s\n%s\n", nomeEst, nomeLinha);
 
@@ -369,25 +379,12 @@ bool atualiza_registro(REG_DADOS_STRUCT *campos_novos, int mask, int RRN, FILE *
     char *buffer_lixo = malloc(quantidade);
     memset(buffer_lixo, LIXO, quantidade); // Enche o buffer com a quantidade necessária de '$'
     DEBUG("DEBUG: FORAM ESCRITOS %d $.\n", quantidade);
-    fwrite(buffer_lixo, 1, quantidade, filestream_bin);
+    fwrite(buffer_lixo, 1, quantidade, arquivoDados);
     
     free(buffer_lixo);
     return true;
 }
 
-/**Objetivo: verificar o RRN fornecido corresponde à busca realizada
- * 
- * Pré-condições:
- *      Filestream binária em um modo que permita leitura
- *      Struct chave e mask foram inicializados juntos
- *      Mask só pode ser 0 ou 1
- *      RRN dentro dos limites do binário
- * 
- * Pós-condições:
- *      Erro: retorna false, com mensagem de DEBUG. Posição do cursor indefinida
- *      Sucesso: retorna false se não corresponde ou se está removido, true se corresponde. Posição do cursor indefinida
- *      Chamador deve: apagar a struct e possivelmente a mask, e fechar o filestream com fecha_binario
- **/
 bool check_registro(REG_DADOS_STRUCT* chave, int mask, int RRN, FILE* bin){
     fseek(bin, RRN * REG_DADOS_S + HEADER_S, SEEK_SET);
     
@@ -469,21 +466,9 @@ bool check_registro(REG_DADOS_STRUCT* chave, int mask, int RRN, FILE* bin){
     return true;
 }
 
-/**Objetivo: extrair um registro de dados do disco e colocar na memória
- * 
- * Pré-condições:
- *      Filestream aberta em modo que permita leitura
- *      Cursor posicionada no começo de um registro de arquivos
- *      Struct mem_destino alocado propriamente
- * 
- * Pós-condições:
- *      Erro: retorna false
- *      Sucesso: retorna true. O cursor aponta para o próximo registro de dados
- *      Chamador deve: apagar o registro da memória quando terminar de usar, fechar a filestream com fecha_binario
- **/
-bool load_registro(FILE* filestream_bin, REG_DADOS_STRUCT* mem_destino){
+bool load_registro(FILE* arquivoDados, REG_DADOS_STRUCT* mem_destino){
 
-    long pos_inicial = ftell(filestream_bin); // Armazena a posição inicial de leitura
+    long pos_inicial = ftell(arquivoDados); // Armazena a posição inicial de leitura
     if((pos_inicial - HEADER_S)%REG_DADOS_S != 0){
         DEBUG("ERRO EM Load_registro: CURSOR NÃO ESTÁ POSICIONADO NO COMEÇO DE UM REGISTRO");
         return false;
@@ -494,11 +479,11 @@ bool load_registro(FILE* filestream_bin, REG_DADOS_STRUCT* mem_destino){
     int campos_inteiros[CAMPOS_INT]; // 0-Proximo, 1-codEstacao, 2-codLinha, 3-codProxEstacao, 4-distProxEstacao, 5-codLinhaIntegra, 6-codEstIntegra
 
     // LENDO 'REMOVIDO' E CAMPOS INTEIROS
-    if(fread(&removido, 1, 1, filestream_bin) != 1){
+    if(fread(&removido, 1, 1, arquivoDados) != 1){
         DEBUG("ERRO EM load_registro: ERRO AO LER CAMPO removido.\n");
         return false;
     }
-    if(fread(campos_inteiros, 4, CAMPOS_INT, filestream_bin) != CAMPOS_INT){
+    if(fread(campos_inteiros, 4, CAMPOS_INT, arquivoDados) != CAMPOS_INT){
         DEBUG("ERRO EM load_registro: ERRO AO LER CAMPOS INTEIROS.\n");
         return false;
     }
@@ -513,16 +498,17 @@ bool load_registro(FILE* filestream_bin, REG_DADOS_STRUCT* mem_destino){
     for(int i=0; i<CAMPOS_STRINGS; i++){
         int tam;
         // Lê o indicador de tamanho
-        fread(&tam, 4, 1, filestream_bin);
+        fread(&tam, 4, 1, arquivoDados);
 
         indicadores_tamanhos[i] = tam;
         if(tam > 0){ // Se o tamanho do campo for maior que 0, o campo string não é NULO
             campos_strings[i] = (char*)malloc(tam + 1);
             if(campos_strings[i]){
-                fread(campos_strings[i], 1, tam, filestream_bin);
+                fread(campos_strings[i], 1, tam, arquivoDados);
                 campos_strings[i][tam] = '\0'; // adiciona o '/0' no final da string
             }else{
                 DEBUG("DEBUG: ERRO AO ALOCAR MEMÓRIA PARA NOME DO REGISTRO.\n");
+                if (i == 1) free(campos_strings[0]);
                 return false;
             }
         }else{ // Se o tamanho da string for 0, deve-se printar "NULO" ao invês de pular o campo
@@ -549,21 +535,12 @@ bool load_registro(FILE* filestream_bin, REG_DADOS_STRUCT* mem_destino){
     DEBUG("load_registro: TODOS OS CAMPOS FORAM LIDOS. nomeEstacao = %s\n", mem_destino->nomeEstacao);
 
     // Move o cursor para o início do próximo registro
-    fseek(filestream_bin, pos_inicial + REG_DADOS_S, SEEK_SET);
+    fseek(arquivoDados, pos_inicial + REG_DADOS_S, SEEK_SET);
 
     return true;
 }
 
-/** Objetivo: povoar as árvores binárias com os elementos necessários para a contagem
- * 
- *  Pré-condições:
- *      Filestream aberta em modo de leitura
- * 
- *  Pós condições:
- *      Duas árvores criadas e preenchidas com elementos relevantes para contagem
- *      Chamador deve: apagar as árvores por e fechar o filestream
- */
-static void carregar_dados(FILE* filestream_bin){
+static void carregar_dados(FILE* arquivoDados){
 
     // APAGANDO POSSÍVEIS ESTRUTURAS DE DADOS
     abb_apagar(&nroEstacoesTracker);
@@ -575,59 +552,61 @@ static void carregar_dados(FILE* filestream_bin){
 
     // LENDO OS REGISTROS DE DADOS DO DISCO PARA A MEMÓRIA, E INSERINDO NA ESTRUTURA DE DADOS
 
-    fseek(filestream_bin, HEADER_S, SEEK_SET); // Move o cursor para o primeiro registro
-    REG_DADOS_STRUCT registro_lido;
+    fseek(arquivoDados, HEADER_S, SEEK_SET); // Move o cursor para o primeiro registro
+    REG_DADOS_STRUCT registroLido;
 
-    while(load_registro(filestream_bin, &registro_lido)) {
-        if(registro_lido.removido == '0'){
-            if(registro_lido.codEstacao != -1 && registro_lido.nomeEstacao != NULL){
+    while(load_registro(arquivoDados, &registroLido)) {
+        if(registroLido.removido == '0'){
+
+            // Inserindo o codEstacao e o nomeEstacao na árvore binária que contabiliza número de estações:
+
+            if(registroLido.codEstacao != -1 && registroLido.nomeEstacao != NULL){
                 
+                // Criando o item
+
                 nroEstacoesItem* item1 = (nroEstacoesItem*) malloc (sizeof(nroEstacoesItem));
-                item1->codEstacao = registro_lido.codEstacao;
-                item1->nomeEstacao = strdup(registro_lido.nomeEstacao);
+                item1->codEstacao = registroLido.codEstacao;
+                item1->nomeEstacao = strdup(registroLido.nomeEstacao);
 
                 abb_inserir(nroEstacoesTracker, item1); // Atualiza o tracker de nroEstacoes apenas se o novo registro contiver um código e nome válidos
             }
-            if(registro_lido.codEstacao != -1 && registro_lido.codProxEstacao != -1){
+
+            // Inserindo o codEstacao e o codProxEstacao na árvore binária que contabiliza o número de pares diferentes:
+
+            if(registroLido.codEstacao != -1 && registroLido.codProxEstacao != -1){
+
+                // Criando o item
 
                 nroParesEstacaoItem* item2 = (nroParesEstacaoItem*) malloc (sizeof(nroParesEstacaoItem));
-                item2->codEstacao = registro_lido.codEstacao;
-                item2->codProxEstacao = registro_lido.codProxEstacao;
+                item2->codEstacao = registroLido.codEstacao;
+                item2->codProxEstacao = registroLido.codProxEstacao;
 
                 abb_inserir(nroParesEstacaoTracker, item2); // Atualiza o tracker de nroParesEstacao apenas se o novo registro contiver um par válido
             }
         }
 
-        free(registro_lido.nomeEstacao);
-        free(registro_lido.nomeLinha);
+        free(registroLido.nomeEstacao);
+        free(registroLido.nomeLinha);
     }
 }
 
-/**Objetivo: atualizar o cabeçalho de um arquivo binário, recontando os registros e marcando-o como consistente
- * 
- * Pré-condições:
- *      topo e proxRRN devem ser calculados corretamente pela função chamadora
- * 
- * Pós-condições:
- *      arquivo fechado com status consistente 
-**/
-void atualizar_cabecalho(char* arquivoBin, int topo, int proxRRN){
+void atualizar_cabecalho(FILE* arquivoDados, int topo, int proxRRN){
 
-    FILE* filestream_bin = fopen(arquivoBin, "rb+");
-    if(filestream_bin == NULL){
-        DEBUG("ERRO EM atualizar_cabecalho: FALHA EM ABRIR O ARQUIVO. ELE EXISTE?\n");
-        return;
-    }
-    carregar_dados(filestream_bin); // CRIANDO E POPULANDO AS ESTRUTURAS DE DADOS A PARTIR DA INFORMAÇÃO NO DISCO
+    carregar_dados(arquivoDados); // CRIANDO E POPULANDO AS ESTRUTURAS DE DADOS A PARTIR DA INFORMAÇÃO NO DISCO
     
     // ATUALIZANDO TOPO DA PILHA E PROX RRN
     DEBUG("atualizar_cabecalho: topo: %d, proxRRN: %d\n", topo, proxRRN);
 
+    // Atualizando status
+
     unsigned char status_consistente = '1';
-    fseek(filestream_bin, 0, SEEK_SET);
-    fwrite(&status_consistente, 1, 1, filestream_bin);
-    fwrite(&topo, 4, 1, filestream_bin);    // Novo topo da pilha
-    fwrite(&proxRRN, 4, 1, filestream_bin); // Novo próximo RRN
+    fseek(arquivoDados, 0, SEEK_SET);
+    fwrite(&status_consistente, 1, 1, arquivoDados);
+    
+    // Atualizando valores
+
+    fwrite(&topo, 4, 1, arquivoDados);    // Novo topo da pilha
+    fwrite(&proxRRN, 4, 1, arquivoDados); // Novo próximo RRN
 
     // CALCULANDO E ATUALIZANDO CONTADORES
     int nroEstacoes = abb_contar_distintos(nroEstacoesTracker);
@@ -636,32 +615,11 @@ void atualizar_cabecalho(char* arquivoBin, int topo, int proxRRN){
     DEBUG("atualizar_cabecalho: nroEstacoes = %d\n", nroEstacoes);
     DEBUG("atualizar_cabecalho: nroParesEstacao = %d\n", nroParesEstacao);
 
-    fwrite(&nroEstacoes, 4, 1, filestream_bin);
-    fwrite(&nroParesEstacao, 4, 1, filestream_bin);
+    fwrite(&nroEstacoes, 4, 1, arquivoDados);
+    fwrite(&nroParesEstacao, 4, 1, arquivoDados);
 
     abb_apagar(&nroEstacoesTracker);
     abb_apagar(&nroParesEstacaoTracker);
 
-    fclose(filestream_bin);
-
     return;
-}
-
-/**Objetivo: fechar o arquivo binário mantendo o status como 'consistente'
- * 
- * Pré-condições:
- *      filestream_bin deve estar aberta em modo que permita escrita, ou ser NULL
- * 
- * Pós-condições:
- *      filestream estará fechada e não será mais possível acessá-la
- */
-int fecha_binario(FILE* filestream_bin){
-    if(filestream_bin == NULL) return 0;
-
-    unsigned char status_consistente = '1';
-    // ATUALIZANDO STATUS PARA CONSISTENTE
-    fseek(filestream_bin, 0, SEEK_SET);
-    fwrite(&status_consistente, 1, 1, filestream_bin);
-
-    return fclose(filestream_bin);
 }
