@@ -368,7 +368,7 @@ static void corrigir_raiz(FILE* arvoreB, byteBTree* cabecalho){
 
     byteBTree novaRaiz[TAM_NO_BTREE];
     carregar_no(novaRaiz, arvoreB, rrnNovaRaiz);
-    set_inteiro(novaRaiz, BO_TIPO_NO, TIPORAIZ); // Marca a nova raiz
+    set_inteiro(novaRaiz, BO_tipoNo, TIPORAIZ); // Marca a nova raiz
     armazenar_no(arvoreB, novaRaiz, rrnNovaRaiz);
 }
 
