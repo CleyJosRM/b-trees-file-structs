@@ -4,29 +4,12 @@
 #include "core/definicoes.h"
 #include "core/datamanager.h"
 
-/**
-  * @brief Funcionalidade [6]: Busca por registros e atualiza os campos com novos valores.
-  * Simula o comando SQL 'UPDATE'. Localiza registros através de filtros e atualiza seus campos.
-  * Para cada busca realizada, os registros correspondentes devem ser atualizados 
-  * com os novos valores especificados. Vários ciclos de busca&atualização podem ser realizados.
-  * @param arquivoBin Nome do arquivo binário para atualização.
-  * @param n Quantidade de ciclos de busca&atualização a serem realizados.
-  * @return void
-  */
-void func_6(char* arquivoBin, int n){
+bool func_6(FILE* arquivoBin, int n){
 
     REG_DADOS_STRUCT* registros_de_busca = NULL;
     REG_DADOS_STRUCT* campos_novos = NULL;
     int* mask_busca = NULL;
     int* mask_novos = NULL;
-
-    // ABRINDO O ARQUIVO:
-
-    FILE* filestream_bin = abre_binario(arquivoBin, true); // abre o arquivo binário em modo de leitura e escrita
-    if(filestream_bin == NULL){
-        printf("Falha no processamento do arquivo.\n");
-        return;
-    };
 
     // LENDO CAMPOS DE BUSCA E OS VALORES DE ATUALIZAÇÃO:
 
@@ -47,32 +30,26 @@ void func_6(char* arquivoBin, int n){
 
     int proxRRN, topoPilha;
 
-    fseek(filestream_bin, 1, SEEK_SET);
-    fread(&topoPilha, 4, 1, filestream_bin);
-    fread(&proxRRN, 4, 1, filestream_bin);
+    fseek(arquivoBin, 1, SEEK_SET);
+    fread(&topoPilha, 4, 1, arquivoBin);
+    fread(&proxRRN, 4, 1, arquivoBin);
 
     for(int i = 0; i < n; i++){     
     // Começa uma busca sequencial no arquivo a partir do RRN = 0 para cada uma das n buscas
         for(int RRN = 0; RRN < proxRRN; RRN++){
 
-            if(check_registro(&(registros_de_busca[i]), mask_busca[i], RRN, filestream_bin)){
+            if(check_registro(&(registros_de_busca[i]), mask_busca[i], RRN, arquivoBin)){
                
-                if(atualiza_registro(&(campos_novos[i]), mask_novos[i], RRN, filestream_bin) == false){
+                if(atualiza_registro(&(campos_novos[i]), mask_novos[i], RRN, arquivoBin) == false){
                     DEBUG("ERRO EM func_6: FALHA AO ATUALIZAR REGISTRO.\n");
                 }
             }
         }
 
-        if (mask_busca[i] & 64) free(registros_de_busca[i].nomeEstacao);
-        if (mask_busca[i] & 128) free(registros_de_busca[i].nomeLinha);
-        if (mask_novos[i] & 64) free(campos_novos[i].nomeEstacao);
-        if (mask_novos[i] & 128) free(campos_novos[i].nomeLinha);
-    }
-
-    // FECHANDO ARQUIVO
-    if(fecha_binario(filestream_bin) != 0){
-        DEBUG("DEBUG: ERRO AO FECHAR BIN %s\n", arquivoBin);
-        goto erro;
+        if (mask_busca[i] & 64){ free(registros_de_busca[i].nomeEstacao); registros_de_busca[i].nomeEstacao = NULL;}
+        if (mask_busca[i] & 128){ free(registros_de_busca[i].nomeLinha); registros_de_busca[i].nomeEstacao = NULL;}
+        if (mask_novos[i] & 64){ free(campos_novos[i].nomeEstacao); registros_de_busca[i].nomeEstacao = NULL;}
+        if (mask_novos[i] & 128){ free(campos_novos[i].nomeLinha); registros_de_busca[i].nomeEstacao = NULL;}
     }
 
     // RETORNANDO
@@ -82,12 +59,7 @@ void func_6(char* arquivoBin, int n){
     free(mask_busca);
     free(mask_novos);
 
-    BinarioNaTela(arquivoBin);
-    #ifdef PRINT_ERROS
-    ExibirBinario(arquivoBin);
-    #endif
-
-    return;
+    return true;
 
     erro:
 
@@ -95,9 +67,6 @@ void func_6(char* arquivoBin, int n){
     free(campos_novos);
     free(mask_busca);
     free(mask_novos);
-    if(fecha_binario(filestream_bin) != 0){
-        DEBUG("DEBUG: ERRO AO FECHAR BIN %s\n", arquivoBin);
-    }
 
-    return;
+    return false;
 }

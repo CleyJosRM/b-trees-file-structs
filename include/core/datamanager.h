@@ -15,7 +15,7 @@ Gerencia as estruturas de dados relacionadas.
 	 * 
 	 * Pré-condições: 
 	 *      O caminho/nome do arquivo deve existir e ter as permissões necessárias
-	 *      A necessidade de permissão de atualização (escrita) deve ser explicitada no parâmetro
+	 *      O modo de abertura deve ser especificado no parâmetro
 	 *      O status do arquivo deve ser '1'
 	 * 
 	 * Pós condições: 
@@ -23,7 +23,7 @@ Gerencia as estruturas de dados relacionadas.
 	 *      Sucesso: retorna filestream do arquivo com o modo especificado, status '0' se for de atualização. Abrir em modo de leitura não afeta o status.
 	 *      Chamador deve: fechar a filestream com a função fecha_binario() para impor status '1', se necessário.
 	 */
-	FILE* abre_binario(char* arquivoBin, bool escrita);
+	FILE* abre_binario(char* arquivoBin, char* modo);
 	
 	/**Objetivo: fechar o arquivo binário mantendo o status como 'consistente'
 	 * 
@@ -33,7 +33,7 @@ Gerencia as estruturas de dados relacionadas.
 	 * Pós-condições:
 	 *      filestream estará fechada e não será mais possível acessá-la
 	 */
-	int fecha_binario(FILE* filestream_bin);
+	int fecha_binario(FILE* filestream_bin, char* modo);
 
 	/**Objetivo: atualizar o cabeçalho de um arquivo binário, recontando os registros e marcando-o como consistente
 	 * 

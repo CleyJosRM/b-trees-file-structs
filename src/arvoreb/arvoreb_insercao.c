@@ -93,34 +93,6 @@ ENTRADA_INDICE inserir_entrada_em_no(FILE* arvoreB, byteBTree* cabecalho, byteBT
     
 }
 
-void substituir_entrada_em_no(byteBTree* no, ENTRADA_INDICE entradaInserir){
-
-        int chaveAtual = get_inteiro(no, BO_C1); // C1
-        int chaveBusca = entradaInserir.chave;
-        bool achou = false;
-
-        // O loop a seguir percorre o nó chave por chave procurando pela entrada com a mesma chave que entradaInserir. 
-        // Se encontrar, substitui o BOdados da entrada no nó pelo BOdados de entradaInserir. 
-
-        int nroChaves = get_inteiro(no, BO_nroChaves); // o loop será executado no máximo tantas vezes quanto for o número de chaves no nó
-        int i;
-        for(i=1; i<nroChaves && chaveAtual != chaveBusca; i++){ // enquanto C_i != chaveBusca
-            chaveAtual = get_inteiro(no, BO_C1+8*i); // C2, C3
-        }
-
-        if(chaveAtual == chaveBusca){ // se encontrou a chaveBusca
-            set_inteiro(no, BO_PR1+8*i-8, entradaInserir.BOdados); // PR1, PR2, PR3
-            achou = true;
-        }
-        
-        if(!achou){
-            DEBUG("ERRO EM substituir_entrada_em_no: TENTOU SUBSTITUIR A ENTRADA (%d, %d) MAS ELA NÃO EXISTE NO NÓ.\n", entradaInserir.chave, entradaInserir.BOdados); 
-            exit(1);
-        }
-
-        return;
-}
-
 /**
  * Percorre o nó fornecido procurando pelo lugar certo para inserir a nova entrada 
  * Se for uma folha, insere no nó atual
@@ -133,6 +105,7 @@ void substituir_entrada_em_no(byteBTree* no, ENTRADA_INDICE entradaInserir){
  * O tipoNoCriado aponta para um inteiro, cujo valor inicial deve ser TIPOFOLHA. Após a primeira inserção, a função atualiza esse valor para TIPOINTERMEDIARIO
  */
 static ENTRADA_INDICE inserir_entrada_na_arvore_rec(FILE* arvoreB, byteBTree* cabecalho, byteBTree* noAtual, int RRNatual, ENTRADA_INDICE entradaInserir, int* tipoNoCriado) {
+    DEBUG("RRNatual = %d ", RRNatual);
     if(RRNatual < 0){
         DEBUG("ERRO EM inserir_entrada_na_arvore_rec: RRNatual negativo.\n");
         exit(1);
@@ -149,8 +122,7 @@ static ENTRADA_INDICE inserir_entrada_na_arvore_rec(FILE* arvoreB, byteBTree* ca
     bool achou = percorrer_no(&RRNdescendente, noAtual, entradaInserir.chave);
 
     if(achou){
-        DEBUG("Entrada já está inserida no arquivo de índice.\n");
-        substituir_entrada_em_no(noAtual, entradaInserir);
+        DEBUG("Entrada já está inserida no arquivo de índice. What?!\n");
         return get_entrada_nula();
     }
 
@@ -218,8 +190,8 @@ void inserir_entrada(FILE* arvoreB, int chave, int BOdados){
     carregar_cabecalho(cabecalho, arvoreB, true);
 
     if(get_inteiro(cabecalho, BO_RRNraiz) == -1){ // Se não há raiz
-        
         // Criando a primeira raiz da árvore
+        DEBUG("CRIANDO PRIMEIRA RAIZ DA ÁRVORE\n");
         byteBTree novaRaiz[TAM_NO_BTREE];
         int RRNnovaRaiz = criar_nova_raiz(novaRaiz, arvoreB, cabecalho);
         inserir_entrada_em_no_shiftada(novaRaiz, inserirNaArvore);
@@ -236,6 +208,8 @@ void inserir_entrada(FILE* arvoreB, int chave, int BOdados){
     ENTRADA_INDICE entradaRaiz = inserir_entrada_na_arvore_rec(arvoreB, cabecalho, raiz, RRNraiz, inserirNaArvore, &tipoNoCriar);
     
     if(!check_entrada_nula(entradaRaiz)){ // Se alguma entrada foi promovida, precisamos criar uma nova raiz
+        
+        DEBUG("CRIANDO NOVA RAIZ\n");
         byteBTree novaRaiz[TAM_NO_BTREE];
         int RRNnovaRaiz = criar_outra_raiz(novaRaiz, raiz, RRNraiz, arvoreB, cabecalho);
         inserir_entrada_em_no_shiftada(novaRaiz, entradaRaiz);

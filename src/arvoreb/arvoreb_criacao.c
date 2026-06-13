@@ -1,10 +1,15 @@
 #include "arvoreb/arvoreb_interna.h"
 
-FILE* abrir_indice(char* nomeIndice, bool escrita){  
+FILE* abrir_indice(char* nomeIndice, char* modo){  
 
-    // Abrindo a filestream com o modo correto:
+    // Verificando o modo correto:
 
-    char* modo = escrita ? "rb+" : "rb";
+    if(modo == NULL || modo_eh_valido(modo) == false){
+        DEBUG("ERRO EM abrir_indice: NÃO É UM MODO VÁLIDO.\n");
+        return NULL;
+    }
+
+    // Abrindo o arquivo
 
     FILE* fs = fopen(nomeIndice, modo);
     if(fs == NULL){
@@ -14,17 +19,21 @@ FILE* abrir_indice(char* nomeIndice, bool escrita){
 
     // Verificando se o status está consistente:
 
-    fseek(fs, 0, SEEK_SET);
     byteBTree status;
-    fread(&status, 1, 1, fs);
-    if(status == INCONSISTENTE){ // se estiver inconsistente, fecha o arquivo e retorna nulo.
-        if(fclose(fs) != 0){
-            DEBUG("ERRO EM abrir_indice: ERRO AO USAR fclose APÓS CONFIRMAR INCONSISTÊNCIA.\n");
+    if(strcmp(modo, "wb+") != 0){
+        fseek(fs, 0, SEEK_SET);
+        fread(&status, 1, 1, fs);
+        if(status == INCONSISTENTE){ // se estiver inconsistente, fecha o arquivo e retorna nulo.
+            if(fclose(fs) != 0){
+                DEBUG("ERRO EM abrir_indice: ERRO AO USAR fclose APÓS CONFIRMAR INCONSISTÊNCIA.\n");
+            }
+            return NULL;
         }
-        return NULL;
     }
 
     // Se o arquivo for aberto para ser escrito, então o status é marcado como inconsistente
+
+    bool escrita = (strcmp(modo, "rb") == 0) ? false : true; // o único modo que não aceita escrita é rb
 
     if(escrita){
         status = INCONSISTENTE;
@@ -35,10 +44,12 @@ FILE* abrir_indice(char* nomeIndice, bool escrita){
     return fs;    
 }
 
-bool fechar_indice(FILE* indice, bool marcarConsistente){
+bool fechar_indice(FILE* indice, char* modo){
     if(indice == NULL){
         return true;
     }
+
+    bool marcarConsistente = (strcmp(modo, "rb") == 0) ? false : true; // se o modo foi aberto para leitura, o status não deve ser alterado
 
     // Marcando o status do arquivo como consistente
 

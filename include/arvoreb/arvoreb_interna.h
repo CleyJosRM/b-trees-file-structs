@@ -1,7 +1,7 @@
 #ifndef ARVOREB_INTERNA_H
     #define ARVOREB_INTERNA_H
 
-    #include "../../include/core/definicoes.h"
+    #include "core/definicoes.h"
     #include "indice.h"
     #include<stdlib.h>
     #include<stdio.h>

@@ -69,35 +69,9 @@ static REG_DADOS_STRUCT* ler_linha_csv(char* linha){
     return registro_lido;
 }
 
-/**
-	 * @brief Funcionalidade [1]: Converte um arquivo csv para binário, de acordo com a especificação.
-	 * Simula o comando SQL 'CREATE TABLE'. Percorre sequencialmente o arquivo csv e 
-	 * e gera os registros de dados correspondentes a cada linha. 
-	 * Nenhum registro é marcado como logicamente removido
-	 * O cabeçalho é gerado com a contagem correta de estações e de pares (codEstacao, codProxEstacao)
-	 * @param arquivoEntrada Nome do arquivo csv de onde os dados serão lidos
-	 * @param arquivoEntrada Nome do arquivo binário que será produzido
-	 * @return void
-	 */
-void func_1(char* arquivoEntrada, char* arquivoSaida){ // a ordem dos argumentos é o contrário da ordem digitada pelo usuário, devido à ordem de empilhamento dos argumentos na memória, lembrando que cada argumento é o retorno de uma chamada de strtok
+bool func_1(FILE* arquivoCSV, FILE* arquivoDados){ // a ordem dos argumentos é o contrário da ordem digitada pelo usuário, devido à ordem de empilhamento dos argumentos na memória, lembrando que cada argumento é o retorno de uma chamada de strtok
 	
-	FILE* filestream_csv = NULL;
-	FILE* filestream_bin = NULL;
 	REG_DADOS_STRUCT* registro_lido = NULL;
-	
-	// ABRIR CSV EM MODO LEITURA
-	filestream_csv = fopen(arquivoEntrada, "r"); // abre o arquivo csv em modo leitura e como texto
-	if(filestream_csv == NULL){ // se falhou
-		DEBUG("ERRO EM func_1: ERRO AO ABRIR CSV\n");
-		goto erro;
-	}
-	
-	// CRIAR ARQUIVO BINÁRIO EM MODO ESCRITA
-	filestream_bin = fopen(arquivoSaida, "wb"); // abre o arquivo de saída em modo escrita e como binário
-	if(filestream_bin == NULL){ // se falhou
-		DEBUG("ERRO EM func_1: ERRO AO ABRIR BINÁRIO\n");
-		goto erro;
-	}
 	
 	// ESCREVER REGISTRO DE CABEÇALHO DUMMY
 
@@ -111,12 +85,12 @@ void func_1(char* arquivoEntrada, char* arquivoSaida){ // a ordem dos argumentos
 		LIXO, LIXO, LIXO, LIXO  // nroParesEstacao, será atualizado depois
 	};
 	
-	fwrite(cabecalho, 1, sizeof(cabecalho), filestream_bin);
+	fwrite(cabecalho, 1, sizeof(cabecalho), arquivoDados);
 	
 	// ESCREVER REGISTRO DE DADOS
 	
 	char linha[103]; // uma linha do arquivo csv. O cabeçalho tem caracteres, mais \n, mais \0
-	fgets(linha, 103, filestream_csv);
+	fgets(linha, 103, arquivoCSV);
 	linha[strcspn(linha, "\r\n")] = '\0'; // faz a linha terminar em \0
 	 
 	if(strcmp(linha, "CodEstacao,NomeEstacao,CodLinha,NomeLinha,CodProxEst,DistanciaProxEst,CodLinhaInteg,CodEstacaoInteg") != 0){
@@ -124,49 +98,36 @@ void func_1(char* arquivoEntrada, char* arquivoSaida){ // a ordem dos argumentos
 		goto erro;
 	}
 	
-	while(fgets(linha, sizeof(linha), filestream_csv)){ // lê novas linhas até chegar ao fim do arquivo, quando fgets retorna NULL
+	while(fgets(linha, sizeof(linha), arquivoCSV)){ // lê novas linhas até chegar ao fim do arquivo, quando fgets retorna NULL
 
 		//DEBUG("DEBUG: LENDO REGISTRO DE DADOS\n");
 	
 		linha[strcspn(linha, "\r\n")] = '\0'; // faz a linha terminar em \0
 		registro_lido = ler_linha_csv(linha);
 		if(registro_lido == NULL){
-			DEBUG("ERRO EM func_1: FALHA EM LER LINHA DO CSV %s\n", arquivoEntrada);
+			DEBUG("ERRO EM func_1: FALHA EM LER LINHA DO CSV\n");
 			goto erro;
 		}
 		
 		// ESCREVER O REGISTRO NO BINÁRIO E NAS ESTRUTURAS
 
-		if(escreve_registro(registro_lido, filestream_bin) == false){
-			DEBUG("ERRO EM func_1: FALHA EM ESCREVER REGISTRO NO BINÁRIO %s\n", arquivoSaida);
+		if(escreve_registro(registro_lido, arquivoDados) == false){
+			DEBUG("ERRO EM func_1: FALHA EM ESCREVER REGISTRO NO BINÁRIO\n");
 			goto erro;
 		} 
 		proxRRN++;
 
-		free(registro_lido->nomeEstacao);
-		free(registro_lido->nomeLinha);
+		free(registro_lido->nomeEstacao); registro_lido->nomeEstacao = NULL; 
+		free(registro_lido->nomeLinha); registro_lido->nomeLinha = NULL;
 	}
 
-	// FECHANDO ARQUIVOS E ATUALIZANDO CABEÇALHO
-	
-	if(filestream_csv != NULL){
-		if(fclose(filestream_csv) != 0){
-			DEBUG("DEBUG: ERRO AO FECHAR CSV %s\n", arquivoEntrada);
-			goto erro;
-		}
-	}
+	// ATUALIZANDO CABEÇALHO
 
-	atualizar_cabecalho(filestream_bin, -1, proxRRN);
-	if(fecha_binario(filestream_bin) != 0){
-		DEBUG("DEBUG: ERRO AO FECHAR BIN %s\n", arquivoSaida);
-		goto erro;
-	}
-	
+	atualizar_cabecalho(arquivoDados, -1, proxRRN);
+
 	// EXIBINDO ARQUIVO
 
-	BinarioNaTela(arquivoSaida);
-
-	return;
+	return true;
 	
 	// TRATAMENTO DE ERRO:
 
@@ -178,19 +139,5 @@ void func_1(char* arquivoEntrada, char* arquivoSaida){ // a ordem dos argumentos
 	}
 	free(registro_lido);
 
-	if(filestream_csv != NULL){
-		if(fclose(filestream_csv) != 0){
-			DEBUG("DEBUG: ERRO AO FECHAR CSV %s\n", arquivoEntrada);
-		}
-	}
-	
-	if(filestream_bin != NULL){
-		if(fecha_binario(filestream_bin) != 0){
-			DEBUG("DEBUG: ERRO AO FECHAR BIN %s\n", arquivoSaida);
-		}
-	}
-
-	printf("Falha no processamento do arquivo.\n");
-
-	return;
+	return false;
 }

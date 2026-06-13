@@ -5,8 +5,8 @@
 	#include <stdbool.h>
 
 	// Funções Públicas do índice, implementado como Árvore-B:
-	FILE* abrir_indice(char* nomeIndice, bool escrita);
-	bool fechar_indice(FILE* indice, bool marcarConsistente);
+	FILE* abrir_indice(char* nomeIndice, char* modo);
+	bool fechar_indice(FILE* indice, char* modo);
 	void criar_indice(FILE* arquivo);
 	int buscar_entrada(FILE* indice, int chaveBusca);
 	void inserir_entrada(FILE* indice, int chave, int BOdados);

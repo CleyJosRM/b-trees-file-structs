@@ -144,61 +144,83 @@ static const TABELA_FUNCOES nroParesEstacaoItemFuncoes = {
 
 
 
-/**Objetivo: abrir um arquivo binário em modo especificado do Banco de Dados.  
- * 
- * Pré-condições: 
- *      O caminho/nome do arquivo deve existir e ter as permissões necessárias
- *      A necessidade de permissão de atualização (escrita) deve ser explicitada no parâmetro
- *      O status do arquivo deve ser '1'
- * 
- * Pós condições: 
- *      Erro: retorna nulo
- *      Sucesso: retorna filestream do arquivo com o modo especificado, status '0' se for de atualização. Abrir em modo de leitura não afeta o status.
- *      Chamador deve: fechar a filestream com a função fecha_binario() para impor status '1', se necessário.
- */
-FILE* abre_binario(char* arquivoBin, bool escrita){
+bool modo_eh_valido(char* modo){
+
+    char* modos_possiveis[] = {"rb", "rb+", "wb", "wb+"};
+    // contador inicializado como long unsigned int para o compilador parar de reclamar
+    for(long unsigned int i=0; i < sizeof(modos_possiveis)/sizeof(char*); i++){
+        if(strcmp(modo, modos_possiveis[i]) == 0)
+            return true;
+    }
+    return false;
+}
+
+FILE* abre_binario(char* nome, char* modo){
     
-    char* modo = escrita ? "rb+" : "rb";
-
-    // abre o arquivo bin em modo leitura
-    FILE* arquivoDados = fopen(arquivoBin, modo);
-    if(arquivoDados == NULL){ // se falhou
-        DEBUG("ERRO EM abre_binario: ERRO AO ABRIR O BINÁRIO %s. VERIFIQUE EXISTÊNCIA E PERMISSÕES.\n", arquivoBin);
+    // Verificando o modo correto:
+    if(modo == NULL || modo_eh_valido(modo) == false){
+        DEBUG("ERRO EM abre_binario: NÃO É UM MODO VÁLIDO.\n");
         return NULL;
     }
 
-    // Lê o status do arquivo
-    unsigned char status;
-    fread(&status, 1, 1, arquivoDados);
-    if(status != '1'){
-        DEBUG("ERRO EM abre_binario: ARQUIVO %s INCONSISTENTE. NÃO FOI POSSÍVEL ABRIR.\n", arquivoBin);
-        fclose(arquivoDados);
+    // Abrindo o arquivo
+    FILE* arquivoDados = fopen(nome, modo);
+    if(arquivoDados == NULL){
+        DEBUG("ERRO EM abre_binario: ERRO AO ABRIR O BINÁRIO. VERIFIQUE EXISTÊNCIA E PERMISSÕES.\n");
         return NULL;
     }
+
+    // Verificando se o status está consistente
+    if(strcmp(modo, "wb+") != 0){ // arquivos novos não tem status para serem lidos
+        fseek(arquivoDados, 0, SEEK_SET);
+        unsigned char status;
+        
+        if (fread(&status, 1, 1, arquivoDados) == 1) {
+            if(status != '1'){ // Se for diferente de consistente, fecha e retorna NULL
+                DEBUG("ERRO EM abre_binario: ARQUIVO INCONSISTENTE. NÃO FOI POSSÍVEL ABRIR.\n");
+                fclose(arquivoDados);
+                return NULL;
+            }
+        }
+    }
+
+    // Se o arquivo for aberto para escrita, marca o status como inconsistente
+    bool escrita = (strcmp(modo, "rb") == 0) ? false : true;
 
     if(escrita){
-        // Reescreve o status do arquivo
+        unsigned char status = '0';
         fseek(arquivoDados, 0, SEEK_SET);
-        status = '0';
         fwrite(&status, 1, 1, arquivoDados);
     }
-    fseek(arquivoDados, 0, SEEK_SET); // Voltando ao começo
 
+    fseek(arquivoDados, 0, SEEK_SET); // Garante o ponteiro no início 
     return arquivoDados;
 }
 
-/**Objetivo: escrever um registro de dados no arquivo binário
- * 
- * Pré-condições:
- *      Filestream binária em modo de atualização
- *      Cursor em uma posição compatível com o início de um registro de dados
- *      O registro a ser inserido deve ser válido
- * 
- * Pós-condições:
- *      Erro: retorna false, sem alterar a posição do cursor
- *      Sucesso: retorna true, com o cursor apontado para a posição do próximo registro de dados
- *      Chamador deve: apagar a struct e fechar o arquivo com fecha_binario
- **/
+int fecha_binario(FILE* arquivoDados, char* modo){
+    if(arquivoDados == NULL){
+        return 0;
+    }
+
+    // Se o modo foi aberto apenas para leitura, o status não deve ser alterado
+    bool marcarConsistente = (strcmp(modo, "rb") == 0) ? false : true; 
+
+    // Marcando o status do arquivo como consistente
+    if(marcarConsistente){
+        fseek(arquivoDados, 0, SEEK_SET);
+        unsigned char status_consistente = '1';
+        fwrite(&status_consistente, 1, 1, arquivoDados);
+    }
+
+    // Fechando o arquivo binário
+    if(fclose(arquivoDados) != 0){
+        DEBUG("ERRO EM fecha_binario: ERRO AO USAR fclose NO ARQUIVO BINÁRIO.\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 bool escreve_registro(REG_DADOS_STRUCT* registroInserir, FILE* arquivoDados){
     if(registroInserir == NULL){
         DEBUG("ERRO EM escreve_registro: REGISTRO NULO.\n");
@@ -249,18 +271,6 @@ bool escreve_registro(REG_DADOS_STRUCT* registroInserir, FILE* arquivoDados){
     return true;
 }
 
-/**Objetivo: atualizar um registro no arquivo binário
- * 
- * Pré-condições:
- *      Filestream binária em um modo que permita leitura e escrita
- *      RRN dentro dos limites do binário
- *      Struct campos_novos e mask foram inicializados juntos
- * 
- * Pós-condições:
- *      Erro: retorna false, com posição do cursor indeterminada
- *      Sucesso: retorna true, com o cursor apontado para a posição do próximo registro de dados
- *      Chamador deve: apagar a struct e fechar o arquivo com fecha_binario
- **/
 bool atualiza_registro(REG_DADOS_STRUCT *campos_novos, int mask, int RRN, FILE *arquivoDados){
     if(campos_novos == NULL){
         DEBUG("ERRO EM atualiza_registro: NÃO FOI FORNECIDO O VALOR DOS NOVOS CAMPOS.\n");
@@ -375,19 +385,6 @@ bool atualiza_registro(REG_DADOS_STRUCT *campos_novos, int mask, int RRN, FILE *
     return true;
 }
 
-/**Objetivo: verificar o RRN fornecido corresponde à busca realizada
- * 
- * Pré-condições:
- *      Filestream binária em um modo que permita leitura
- *      Struct chave e mask foram inicializados juntos
- *      Mask só pode ser 0 ou 1
- *      RRN dentro dos limites do binário
- * 
- * Pós-condições:
- *      Erro: retorna false, com mensagem de DEBUG. Posição do cursor indefinida
- *      Sucesso: retorna false se não corresponde ou se está removido, true se corresponde. Posição do cursor indefinida
- *      Chamador deve: apagar a struct e possivelmente a mask, e fechar o filestream com fecha_binario
- **/
 bool check_registro(REG_DADOS_STRUCT* chave, int mask, int RRN, FILE* bin){
     fseek(bin, RRN * REG_DADOS_S + HEADER_S, SEEK_SET);
     
@@ -469,18 +466,6 @@ bool check_registro(REG_DADOS_STRUCT* chave, int mask, int RRN, FILE* bin){
     return true;
 }
 
-/**Objetivo: extrair um registro de dados do disco e colocar na memória
- * 
- * Pré-condições:
- *      Filestream aberta em modo que permita leitura
- *      Cursor posicionada no começo de um registro de arquivos
- *      Struct mem_destino alocado propriamente
- * 
- * Pós-condições:
- *      Erro: retorna false
- *      Sucesso: retorna true. O cursor aponta para o próximo registro de dados
- *      Chamador deve: apagar o registro da memória quando terminar de usar, fechar a filestream com fecha_binario
- **/
 bool load_registro(FILE* arquivoDados, REG_DADOS_STRUCT* mem_destino){
 
     long pos_inicial = ftell(arquivoDados); // Armazena a posição inicial de leitura
@@ -523,6 +508,7 @@ bool load_registro(FILE* arquivoDados, REG_DADOS_STRUCT* mem_destino){
                 campos_strings[i][tam] = '\0'; // adiciona o '/0' no final da string
             }else{
                 DEBUG("DEBUG: ERRO AO ALOCAR MEMÓRIA PARA NOME DO REGISTRO.\n");
+                if (i == 1) free(campos_strings[0]);
                 return false;
             }
         }else{ // Se o tamanho da string for 0, deve-se printar "NULO" ao invês de pular o campo
@@ -554,15 +540,6 @@ bool load_registro(FILE* arquivoDados, REG_DADOS_STRUCT* mem_destino){
     return true;
 }
 
-/** Objetivo: povoar as árvores binárias com os elementos necessários para a contagem
- * 
- *  Pré-condições:
- *      Filestream aberta em modo de leitura
- * 
- *  Pós condições:
- *      Duas árvores criadas e preenchidas com elementos relevantes para contagem
- *      Chamador deve: apagar as árvores por e fechar o filestream
- */
 static void carregar_dados(FILE* arquivoDados){
 
     // APAGANDO POSSÍVEIS ESTRUTURAS DE DADOS
@@ -613,14 +590,6 @@ static void carregar_dados(FILE* arquivoDados){
     }
 }
 
-/**Objetivo: atualizar o cabeçalho de um arquivo binário, recontando os registros e marcando-o como consistente
- * 
- * Pré-condições:
- *      topo e proxRRN devem ser calculados corretamente pela função chamadora
- * 
- * Pós-condições:
- *      arquivo fechado com status consistente 
-**/
 void atualizar_cabecalho(FILE* arquivoDados, int topo, int proxRRN){
 
     carregar_dados(arquivoDados); // CRIANDO E POPULANDO AS ESTRUTURAS DE DADOS A PARTIR DA INFORMAÇÃO NO DISCO
@@ -652,26 +621,5 @@ void atualizar_cabecalho(FILE* arquivoDados, int topo, int proxRRN){
     abb_apagar(&nroEstacoesTracker);
     abb_apagar(&nroParesEstacaoTracker);
 
-    fclose(arquivoDados);
-
     return;
-}
-
-/**Objetivo: fechar o arquivo binário mantendo o status como 'consistente'
- * 
- * Pré-condições:
- *      arquivoDados deve estar aberta em modo que permita escrita, ou ser NULL
- * 
- * Pós-condições:
- *      filestream estará fechada e não será mais possível acessá-la
- */
-int fecha_binario(FILE* arquivoDados){
-    if(arquivoDados == NULL) return 0;
-
-    unsigned char status_consistente = '1';
-    // ATUALIZANDO STATUS PARA CONSISTENTE
-    fseek(arquivoDados, 0, SEEK_SET);
-    fwrite(&status_consistente, 1, 1, arquivoDados);
-
-    return fclose(arquivoDados);
 }
