@@ -3,16 +3,6 @@
 
 
 
-
-
-bool no_pode_emprestar(byteBTree* no){
-    return get_inteiro(no, BO_nroChaves) > NUM_MIN_CHAVES;
-}
-
-
-
-
-
 // MEXENDO COM ENTRADAS (ENTRIES) EM NÓS DA ÁRVORE B
 
 /*
@@ -39,9 +29,6 @@ Para realizar essas operações, usamos funções auxiliares:
 
 
 
-
-
-// Retorna uma entrada nula, definida como tendo chave, BOdados e RRNdescendente iguais a -1.
 ENTRADA_INDICE get_entrada_nula(){
     ENTRADA_INDICE entradaNula;
     entradaNula.chave = -1;
@@ -51,7 +38,6 @@ ENTRADA_INDICE get_entrada_nula(){
     return entradaNula;
 }
 
-// Verifica se uma entrada qualquer é igual à entrada nula definida acima. Retorna true caso seja, false caso não seja.
 bool check_entrada_nula(ENTRADA_INDICE entrada){
     ENTRADA_INDICE nula = get_entrada_nula(); // obtendo os valores da entrada nula
     if(entrada.chave == nula.chave && entrada.BOdados == nula.BOdados && entrada.RRNdescendente == nula.RRNdescendente){ // se todos os campos forem iguais
@@ -60,10 +46,6 @@ bool check_entrada_nula(ENTRADA_INDICE entrada){
     return false; // caso algum campo seja diferente, retorna false
 }
 
-/**
- * Lê n entradas de um nó em memória principal e coloca em um vetor de entradas fornecido.
- * Se o tamanho do vetor for maior que n, o resto do vetor é mantido do jeito que estava antes.
- */
 void get_entradas(ENTRADA_INDICE vetorEntradas[], const byteBTree* no, int n){
     for(int i=0; i<n; i++){ // iterando pelas entradas do nó
             int C_i = get_inteiro(no, BO_C1+8*i); // obtendo C1, C2, C3
@@ -74,7 +56,6 @@ void get_entradas(ENTRADA_INDICE vetorEntradas[], const byteBTree* no, int n){
     }
 }
 
-// Lê n entradas de um vetor e coloca em um nó em memória principal, preenchendo o resto do nó com entradas nulas.
 void set_entradas(byteBTree* no, const ENTRADA_INDICE vetorEntradas[], int n){
     
     ENTRADA_INDICE nulo = get_entrada_nula(); // obtendo os valores da entrada nula
@@ -92,7 +73,6 @@ void set_entradas(byteBTree* no, const ENTRADA_INDICE vetorEntradas[], int n){
     set_inteiro(no, BO_nroChaves, n); // atualizando o número de chaves no nó com o número de entradas não nulas agora
 }
 
-// Função de comparação para o qsort. Retorna >0 se a chave da primeira entrada é maior que da segunda, <0 se for menor, 0 se for igual.
 int comparar_entradas(const void* entrada1, const void* entrada2){
     ENTRADA_INDICE e1 = *(ENTRADA_INDICE*)entrada1;
     ENTRADA_INDICE e2 = *(ENTRADA_INDICE*)entrada2;
