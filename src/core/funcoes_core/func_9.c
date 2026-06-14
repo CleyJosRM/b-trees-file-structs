@@ -3,7 +3,7 @@
 
 #include "core/definicoes.h"
 #include "core/datamanager.h"
-#include "core/func.h"
+#include "arvoreb/indice.h"
 
 bool func_9(FILE* arquivoBin, FILE* arquivoIndice, int n){
 

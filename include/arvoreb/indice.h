@@ -119,6 +119,6 @@
 	 *              - Pode reduzir a altura da árvore
 	 *              - Páginas removidas são adicionadas a uma pilha de livres
 	 */
-	void remover_entrada(FILE *indice, int chave);
+	void remover_chave_arvoreB(FILE *indice, int chave);
 
 #endif /* ARVOREB_H */

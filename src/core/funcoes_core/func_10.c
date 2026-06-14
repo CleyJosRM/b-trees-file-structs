@@ -3,6 +3,7 @@
 
 #include "core/definicoes.h"
 #include "core/datamanager.h"
+#include "arvoreb/indice.h"
 
 bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
     REG_DADOS_STRUCT registro_busca = {0};

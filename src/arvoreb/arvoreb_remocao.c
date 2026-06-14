@@ -467,12 +467,6 @@ static bool remover_chave_rec_b(FILE* arvoreB, byteBTree* cabecalho, byteBTree* 
     return removido;
 }
 
-/*
- * Remove a entrada com a chave primária 'chave' (codEstacao) da árvore-B em disco.
- * Marca o arquivo como inconsistente antes de iniciar (carregar_cabecalho com
- * statusInconsistente=true) e o restaura ao final com armazenar_cabecalho,
- * garantindo que interrupções não corrompam silenciosamente o índice.
- */
 void remover_chave_arvoreB(FILE* arvoreB, int chave){
     byteBTree cabecalho[TAM_CABECALHO_BTREE];
     carregar_cabecalho(cabecalho, arvoreB, false);
