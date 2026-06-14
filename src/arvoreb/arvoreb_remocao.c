@@ -1,12 +1,6 @@
 /**
- * ============================================================================
- * @file        arvoreb_remocao.c
- * @brief       Implementação da funcionalidade de remoção em árvore-B, incluindo todos seus algorítmos.
- *
  * @author      Cleyton Jose Rodrigues Macedo 16821725
  * @author      Guilherme Cavalcanti de Santana 15456556
- *
- * @details     Este módulo implementa a remoção de chaves em uma árvore-B armazenada em disco.
  * 
  * Fluxo geral:
  *  1. remover_chave_arvoreB          — ponto de entrada público
@@ -18,7 +12,6 @@
  *                                      se não for possível, faz fusão
  *  4. corrigir_raiz                  — após a recursão, verifica se a raiz ficou
  *                                      vazia e, se sim, promove o único filho
- * ============================================================================
  */
 
 #include "arvoreb/arvoreb_interna.h"
@@ -301,11 +294,6 @@ static void fundir_com_direita(FILE* arvoreB, byteBTree* cabecalho, byteBTree* p
     armazenar_no(arvoreB, pai, rrnPai);
 }
 
-
-/* ---------------------------------------------------------------------------
- * CORREÇÃO DE UNDERFLOW
- * ------------------------------------------------------------------------- */
-
 /*
  * Verifica e corrige underflow no nó FILHO após a remoção de uma chave.
  * Prioridade:
@@ -361,11 +349,6 @@ static void corrigir_underflow(FILE* arvoreB, byteBTree* cabecalho, byteBTree* p
     }
 }
 
-
-/* ---------------------------------------------------------------------------
- * PÓS-PROCESSAMENTO DA RAIZ
- * ------------------------------------------------------------------------- */
-
 /*
  * Verifica se a raiz ficou vazia após a remoção e ajusta o cabeçalho:
  *     Raiz vazia e folha: árvore ficou completamente vazia; libera o nó e
@@ -403,22 +386,17 @@ static void corrigir_raiz(FILE* arvoreB, byteBTree* cabecalho){
     armazenar_no(arvoreB, novaRaiz, rrnNovaRaiz);
 }
 
-/* ---------------------------------------------------------------------------
- * REMOÇÃO RECURSIVA
- * ------------------------------------------------------------------------- */
-
 /*
  * Desce recursivamente a árvore procurando por 'chave'. Ao encontrá-la:
  *
  *   Se nó folha: remove diretamente com remover_entrada_da_folha.
- *
  *   Se nó interno: substitui a chave pelo seu sucessor e desce
  *      recursivamente para remover o sucessor de onde ele estava.
  *      Isso sempre resulta em uma remoção numa folha, simplificando a lógica.
  *
  * Na subida da recursão, verifica se o filho que foi visitado sofreu underflow
- * e chama corrigir_underflow se necessário.
- *
+ *   e chama corrigir_underflow se necessário.
+ * 
  * Retorna true se a chave foi encontrada e removida, false caso contrário.
  */
 static bool remover_chave_rec_b(FILE* arvoreB, byteBTree* cabecalho, byteBTree* noAtual, int rrnAtual, int chave){
@@ -488,12 +466,6 @@ static bool remover_chave_rec_b(FILE* arvoreB, byteBTree* cabecalho, byteBTree* 
     }
     return removido;
 }
-
-
-
-/* ---------------------------------------------------------------------------
- * PONTO DE ENTRADA
- * ------------------------------------------------------------------------- */
 
 /*
  * Remove a entrada com a chave primária 'chave' (codEstacao) da árvore-B em disco.

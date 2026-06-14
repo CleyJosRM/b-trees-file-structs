@@ -5,23 +5,10 @@
 #include "core/datamanager.h"
 
 bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
-
-    REG_DADOS_STRUCT* registros_de_busca = NULL;
-    int* mask = NULL;
-
-    // Lendo os n registros de busca e seus respectivos masks para depois realizar as remoções
-    registros_de_busca = (REG_DADOS_STRUCT*)calloc(n, sizeof(REG_DADOS_STRUCT));
-    mask = (int*)calloc(n, sizeof(int));
-    if(registros_de_busca == NULL || mask == NULL){
-        DEBUG("ERRO EM func_10: NÃO CONSEGUIU ALOCAR MEMÓRIA PARA OS REGISTROS DE BUSCA OU O MASK.\n");
-        goto erro;
-    }
-
-    for(int i = 0; i < n; i++){
-        ler_campos(&registros_de_busca[i], &mask[i]);
-    }
-
+    REG_DADOS_STRUCT registro_busca = {0};
+    int mask = 0;
     int topoPilha, proxRRN;
+    // Lemos o cabeçalho apenas uma vez antes do loop
     fseek(arquivoBin, 1, SEEK_SET);
     if(fread(&topoPilha, 4, 1, arquivoBin) != 1 || fread(&proxRRN, 4, 1, arquivoBin) != 1){
         DEBUG("ERRO EM func_10: NÃO CONSEGUIU LER O TOPO DA PILHA OU O proxRRN NO CABEÇALHO DO BINÁRIO DE DADOS.\n");
@@ -31,14 +18,15 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
     unsigned char removido_flag = '1';
 
     for(int i = 0; i < n; i++){
+        ler_campos(&registro_busca, &mask);
         // Se a busca envolve a chave primária (codEstacao), usa o índice Árvore-B
-        if(mask[i] & 1){
+        if(mask & 1){
             DEBUG("Buscando registro com codEstacao %d usando o índice Árvore-B.\n", registros_de_busca[i].codEstacao);
-            int byteOffset = buscar_entrada(arquivoIndice, registros_de_busca[i].codEstacao);
+            int byteOffset = buscar_entrada(arquivoIndice, registro_busca.codEstacao);
             if(byteOffset != -1){
                 DEBUG("Registro encontrado no índice Árvore-B com byteOffset %d. Verificando se o registro corresponde aos outros campos de busca...\n", byteOffset);
                 int rrnIndice = (byteOffset - HEADER_S) / REG_DADOS_S;  // Conversão "byte offset" para "RRN"
-                if(check_registro(&registros_de_busca[i], mask[i], rrnIndice, arquivoBin)){ // Checa se demais entradas são compativeis com a busca
+                if(check_registro(&registro_busca, mask, rrnIndice, arquivoBin)){ // Checa se demais entradas são compativeis com a busca
                     DEBUG("Registro encontrado no índice Árvore-B corresponde aos outros campos de busca. Removendo...\n");
                     
                     // Remove o registro no arquivo de dados
@@ -47,13 +35,13 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
                     fwrite(&topoPilha, 4, 1, arquivoBin);
                     topoPilha = rrnIndice;
 
-                    remover_chave_arvoreB(arquivoIndice, registros_de_busca[i].codEstacao);
+                    remover_chave_arvoreB(arquivoIndice, registro_busca.codEstacao);
                 }
             }
         } else { // Caso contrário, faz busca sequencial no arquivo de dados
 
             for(int RRN = 0; RRN < proxRRN; RRN++){
-                if(check_registro(&registros_de_busca[i], mask[i], RRN, arquivoBin)){
+                if(check_registro(&registro_busca, mask, RRN, arquivoBin)){
                     REG_DADOS_STRUCT registro_remocao;
                     fseek(arquivoBin, HEADER_S + RRN * REG_DADOS_S, SEEK_SET);
                     // Precisamos ler o registro para saber qual chave deletar da Árvore-B
@@ -73,7 +61,7 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
 
                         // limpa memória alocada para strings do registro de remoção, se necessário
                         if(registro_remocao.nomeEstacao){ free(registro_remocao.nomeEstacao); registro_remocao.nomeEstacao = NULL; }
-                        if(registro_remocao.nomeLinha){ free(registro_remocao.nomeLinha); registro_remocao.nomeEstacao = NULL; }
+                        if(registro_remocao.nomeLinha){ free(registro_remocao.nomeLinha); registro_remocao.nomeLinha = NULL; }
                     }
                     else{
                         DEBUG("ERRO EM func_10: FALHA AO CARREGAR O REGISTRO DO RRN %d PARA VERIFICAÇÃO.\n", RRN);
@@ -81,31 +69,21 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
                 }
             }
         }
+        // Limpa as strings alocadas no final de cada iteração
+        if (registro_busca.nomeEstacao) { free(registro_busca.nomeEstacao); registro_busca.nomeEstacao = NULL; }
+        if (registro_busca.nomeLinha) { free(registro_busca.nomeLinha); registro_busca.nomeLinha = NULL; }
     }
+
 
     atualizar_cabecalho(arquivoBin, topoPilha, proxRRN);
-
-    // limpa todos os registros de busca e o mask da memória
-    for(int i=0; i<n; i++){
-        if(registros_de_busca[i].nomeEstacao != NULL) free(registros_de_busca[i].nomeEstacao);
-        if(registros_de_busca[i].nomeLinha != NULL) free(registros_de_busca[i].nomeLinha);
-    }
-    free(registros_de_busca);
-    free(mask);
 
     return true;
 
     erro:
 
     // limpa memória em caso de erro
-    if(registros_de_busca != NULL){
-        for(int i=0; i<n; i++){
-            if(registros_de_busca[i].nomeEstacao != NULL) free(registros_de_busca[i].nomeEstacao);
-            if(registros_de_busca[i].nomeLinha != NULL) free(registros_de_busca[i].nomeLinha);
-        }
-    }
-    free(registros_de_busca);
-    free(mask);
+    if (registro_busca.nomeEstacao) { free(registro_busca.nomeEstacao); registro_busca.nomeEstacao = NULL; }
+    if (registro_busca.nomeLinha) { free(registro_busca.nomeLinha); registro_busca.nomeLinha = NULL; }
 
     return false;
 }

@@ -48,9 +48,9 @@ bool func_8(FILE* arquivoBin, FILE* arquivoIndice, int n){
         printf("\n");
 
         // Liberando memória alocada para strings do registro de busca, se necessário
-        if(mask & 64) free(registro_busca.nomeEstacao);
+        if(registro_busca.nomeEstacao != NULL) free(registro_busca.nomeEstacao);
         registro_busca.nomeEstacao = NULL;
-        if(mask & 128) free(registro_busca.nomeLinha);
+        if(registro_busca.nomeLinha != NULL) free(registro_busca.nomeLinha);
         registro_busca.nomeLinha = NULL;
     }
 
@@ -58,8 +58,8 @@ bool func_8(FILE* arquivoBin, FILE* arquivoIndice, int n){
 
     erro:
     // limpa a memória em caso de erro se necessário
-    if(mask & 64) free(registro_busca.nomeEstacao);
-    if(mask & 128) free(registro_busca.nomeLinha);
+    if(registro_busca.nomeEstacao != NULL) free(registro_busca.nomeEstacao);
+    if(registro_busca.nomeLinha != NULL) free(registro_busca.nomeLinha);
 
     return false;
 }
