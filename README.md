@@ -67,20 +67,3 @@ A interface de entrada recebe códigos de 1 a 10 que representam rotinas análog
 | **[10]** | `INSERT INTO` *(Índice)* | **Inserção Sincronizada:** Insere registro (reaproveitando espaços se possível) no dado e já propaga a nova entrada na Árvore-B associada. |
 
 ---
-
-## Como Executar
-
-Utilizando o `Makefile`:
-
-**Para compilar o código fonte:**
-```bash
-make all
-```
-**Para executar o sistema:**
-```bash
-make run
-```
-
-**Para limpar executáveis e arquivos de objeto**
-```bash
-make clean
