@@ -50,14 +50,14 @@ A lógica foi dividida para isolar operações de memória, lógica de árvore e
 
 ## Comportamento Algorítmico
 
-### 1. Inserção (*Split* e Promoção)
+### 1. Inserção
 A inserção ocorre inicialmente sempre em um nó folha.
 Quando um nó atinge a capacidade máxima de 3 chaves e necessitamos inserir uma quarta, ocorre o processo de **Split**.
 * **Promoção Mediana:** As 4 chaves são ordenadas em memória RAM. A chave mediana é promovida ao nó pai para manter a árvore balanceada.
 * **Divisão da Página:** O nó original mantém as chaves menores à esquerda da mediana. Uma nova página é criada e posicionada à direita para armazenar as chaves maiores.
 * **Gestão da Raiz:** Se o nó que sofreu *Split* for a Raiz atual, é gerada uma nova Raiz (o nível da árvore cresce), apontando para o nó antigo (esquerda) e para a página recém-criada (direita).
 
-### 2. Remoção (*Underflow*)
+### 2. Remoção
 A remoção de chaves implementa as regras mais complexas do balanceamento dinâmico:
 * **Remoção Não-Folha:** Se a chave a remover não estiver numa folha, os seus dados são primeiramente trocados pela chave sucessora imediata localizada num nó folha. A remoção ocorre nesse nó folha.
 * **Redistribuição (Empréstimo):** Se a remoção em uma folha causar *Underflow* (nó fica com menos chaves que o mínimo exigido), tenta-se o empréstimo. A chave separadora desce do pai para o nó com *underflow*, e uma chave da página adjacente sobe para o pai. Tenta-se primeiro com a adjacente à direita, se esta não tiver chaves sobrando, tenta-se com a adjacente à esquerda.
