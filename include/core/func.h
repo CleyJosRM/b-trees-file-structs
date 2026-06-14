@@ -94,21 +94,25 @@
 	bool func_8(FILE* arquivoDados, FILE* arquivoIndice, int n);
 
 	/**
-	 * @brief Funcionalidade [9]: Remove logicamente registros com base em buscas.
-	 * Utiliza o índice B-tree quando a busca é feita por `codEstacao` e,
-	 * após as remoções, reconstrói o arquivo de índice contendo apenas as chaves
-	 * dos registros não removidos. Ao final, mostra os binários com `BinarioNaTela`.
-	 */
-	bool func_9(FILE* arquivoDados, FILE* arquivoIndice, int n);
-
-	/**
-	 * @brief Funcionalidade [10]: Insere novos registros reaproveitando espaços removidos
+	 * @brief Funcionalidade [9]: Insere novos registros reaproveitando espaços removidos
 	 * e atualiza o arquivo de índice em árvore-B com as chaves `codEstacao`.
 	 * Utiliza a pilha de removidos do arquivo de dados e insere novas entradas na B-tree.
 	 * @param arquivoDados Filestream do arquivo binário de dados.
 	 * @param arquivoIndice Filestream do arquivo de índice árvore-B.
 	 * @param n Quantidade de novos registros a serem inseridos.
 	 * @return bool true se sucesso, false se fracasso
+	 */
+	bool func_9(FILE* arquivoDados, FILE* arquivoIndice, int n);
+
+	/**
+	 * @brief Funcionalidade [10]: Remove logicamente registros com base em buscas.
+	 * Utiliza o índice B-tree quando a busca é feita por `codEstacao` e,
+	 * após as remoções, reconstrói o arquivo de índice contendo apenas as chaves
+	 * dos registros não removidos. Ao final, mostra os binários com `BinarioNaTela`.
+	 * @param arquivoDados Filestream do arquivo binário de dados.
+	 * @param arquivoIndice Filestream do arquivo de índice árvore-B.
+	 * @param n Quantidade de operações de remoção a serem processadas.
+	 * @return bool true se sucesso, false se fracasso.
 	 */
 	bool func_10(FILE* arquivoDados, FILE* arquivoIndice, int n);
 #endif
