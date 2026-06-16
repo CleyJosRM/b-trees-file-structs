@@ -44,58 +44,69 @@ void carregar_cabecalho(byteBTree* buffer, FILE* arvoreB, bool statusInconsisten
 
 
 
-// GETTERS DE NÓS E CABEÇALHO
+// GETTERS E SETTERS DE CABEÇALHO
 
 
 
 int get_RRNraiz(byteBTree* cabecalho){
-    return *((int*)&(cabecalho[BO_RRNraiz]));
-}
+    return *(int*)&cabecalho[BO_RRNraiz]; }
 
 int get_topo(byteBTree* cabecalho){
-    return *((int*)&(cabecalho[BO_topo]));  
-}
+    return *((int*)&(cabecalho[BO_topo])); }
 
 int get_proxRRN(byteBTree* cabecalho){
-    return *((int*)&(cabecalho[BO_proxRRN]));   
-}
+    return *((int*)&(cabecalho[BO_proxRRN])); }
 
 int get_nroNos(byteBTree* cabecalho){
-    return *((int*)&(cabecalho[BO_nroNos]));
-}
+    return *((int*)&(cabecalho[BO_nroNos])); }
+
+void set_RRNraiz(byteBTree* cabecalho, int n){
+    *(int*)&cabecalho[BO_RRNraiz] = n; }
+
+void set_topo(byteBTree* cabecalho, int n){
+    *(int*)&cabecalho[BO_topo] = n; }
+
+void set_proxRRN(byteBTree* cabecalho, int n){
+    *(int*)&cabecalho[BO_proxRRN] = n; }
+
+void set_nroNos(byteBTree* cabecalho, int n){
+    *(int*)&cabecalho[BO_nroNos] = n; }
+
+
+
+// GETTERS E SETTERS DE NÓ
+
+
 
 bool no_eh_folha(byteBTree* no){
-    return *(int*)&no[BO_tipoNo] == TIPOFOLHA;
-}
+    return *(int*)&no[BO_tipoNo] == TIPOFOLHA; }
 
 int get_nroChaves(byteBTree* no){
-    return *(int*)&no[BO_nroChaves];
-}
-
-void set_nroChaves(byteBTree* no, int n){
-    *(int*)&no[BO_nroChaves] = n;
-}
+    return *(int*)&no[BO_nroChaves]; }
 
 int get_chave(byteBTree* no, int idx){
-    return *(int*)&no[BO_C1 + 8*idx];
-}
-
-void set_chave(byteBTree* no, int idx, int chave){
-    *(int*)&no[BO_C1 + 8*idx] = chave;
-}
+    return *(int*)&no[BO_C1 + 8*idx]; }
 
 int get_RRNdados(byteBTree* no, int idx){
-    return *(int*)&no[BO_C1 + 8*idx + 4];
-}
-
-void set_RRNdados(byteBTree* no, int idx, int rrn){
-    *(int*)&no[BO_C1 + 8*idx + 4] = rrn;
-}
+    return *(int*)&no[BO_C1 + 8*idx + 4]; }
 
 int get_filho(byteBTree* no, int idx){
-    return *(int*)&no[BO_P1 + 4*idx];
-}
+    return *(int*)&no[BO_P1 + 4*idx]; }
+
+void set_nroChaves(byteBTree* no, int n){
+    *(int*)&no[BO_nroChaves] = n; }
+
+void set_proximo(byteBTree* no, int n){
+    *(int*)&no[BO_proximo] = n; }
+
+void set_tipoNo(byteBTree* no, int n){
+    *(int*)&no[BO_tipoNo] = n; }
+
+void set_chave(byteBTree* no, int idx, int chave){
+    *(int*)&no[BO_C1 + 8*idx] = chave; }
+
+void set_RRNdados(byteBTree* no, int idx, int rrn){
+    *(int*)&no[BO_C1 + 8*idx + 4] = rrn; }
 
 void set_filho(byteBTree* no, int idx, int rrnFilho){
-    *(int*)&no[BO_P1 + 4*idx] = rrnFilho;
-}
+    *(int*)&no[BO_P1 + 4*idx] = rrnFilho; }

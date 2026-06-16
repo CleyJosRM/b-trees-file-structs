@@ -38,10 +38,10 @@ static void empilhar_pagina_livre(FILE* arvoreB, byteBTree* cabecalho, int rrnPa
     carregar_no(pagina, arvoreB, rrnPagina);
 
     pagina[BO_removido] = '1';
-    set_inteiro(pagina, BO_proximo, get_inteiro(cabecalho, BO_topo));
+    set_proximo(pagina, get_topo(cabecalho));
 
     armazenar_no(arvoreB, pagina, rrnPagina);
-    set_inteiro(cabecalho, BO_topo, rrnPagina);
+    set_topo(cabecalho, rrnPagina);
     inc_inteiro(cabecalho, BO_nroNos, -1);
 }
 
@@ -127,7 +127,7 @@ static int obter_folha_sucessora(FILE* arvoreB, int rrnInicial, byteBTree* folha
  * Recebe um ponteiro para buffer de nó e retorna true se nó tem mais de NUM_MIN_CHAVES entradas, false caso contrário.
  */
  static bool no_pode_emprestar(byteBTree* no){
-    return get_inteiro(no, BO_nroChaves) > NUM_MIN_CHAVES;
+    return get_nroChaves(no) > NUM_MIN_CHAVES;
 }
 
 /* 
@@ -386,7 +386,7 @@ static void corrigir_raiz(FILE* arvoreB, byteBTree* cabecalho){
     if(no_eh_folha(raiz)){
         // Árvore esvaziou completamente
         empilhar_pagina_livre(arvoreB, cabecalho, rrnRaiz);
-        set_inteiro(cabecalho, BO_RRNraiz, -1);
+        set_RRNraiz(cabecalho, -1);
         return;
     }
 
@@ -395,11 +395,11 @@ static void corrigir_raiz(FILE* arvoreB, byteBTree* cabecalho){
     if(rrnNovaRaiz == -1) return;
 
     empilhar_pagina_livre(arvoreB, cabecalho, rrnRaiz);
-    set_inteiro(cabecalho, BO_RRNraiz, rrnNovaRaiz); // Atualiza o RRNraiz no cabeçalho
+    set_RRNraiz(cabecalho, rrnNovaRaiz); // Atualiza o RRNraiz no cabeçalho
 
     byteBTree novaRaiz[TAM_NO_BTREE];
     carregar_no(novaRaiz, arvoreB, rrnNovaRaiz);
-    set_inteiro(novaRaiz, BO_tipoNo, TIPORAIZ); // Marca a nova raiz
+    set_tipoNo(novaRaiz, TIPORAIZ); // Marca a nova raiz
     armazenar_no(arvoreB, novaRaiz, rrnNovaRaiz);
 }
 

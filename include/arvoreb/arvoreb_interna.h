@@ -126,21 +126,27 @@
     // GETTERS DE NÓS E CABEÇALHO
     
 
-    // Getters de cabeçalho
+    // Getters e setters de cabeçalho
     int get_RRNraiz(byteBTree* cabecalho);
     int get_topo(byteBTree* cabecalho);
     int get_proxRRN(byteBTree* cabecalho);
     int get_nroNos(byteBTree* cabecalho);
+    void set_RRNraiz(byteBTree* cabecalho, int n);
+    void set_topo(byteBTree* cabecalho, int n);
+    void set_proxRRN(byteBTree* cabecalho, int n);
+    void set_nroNos(byteBTree* cabecalho, int n);
 
     // Getters e setters de valores individuais dos nós
     bool no_eh_folha(byteBTree* no); // verifica se no é do tipo folha
     int get_nroChaves(byteBTree* no);
-    void set_nroChaves(byteBTree* no, int n);
     int get_chave(byteBTree* no, int idx);
-    void set_chave(byteBTree* no, int idx, int chave);
     int get_RRNdados(byteBTree* no, int idx);
-    void set_RRNdados(byteBTree* no, int idx, int rrn);
     int get_filho(byteBTree* no, int idx);
+    void set_nroChaves(byteBTree* no, int n);
+    void set_proximo(byteBTree* no, int n);
+    void set_tipoNo(byteBTree* no, int n);
+    void set_chave(byteBTree* no, int idx, int chave);
+    void set_RRNdados(byteBTree* no, int idx, int rrn);
     void set_filho(byteBTree* no, int idx, int rrnFilho);
 
 
