@@ -34,68 +34,69 @@ bool func_9(FILE* arquivoBin, FILE* arquivoIndice, int n){
             continue;
         }
 
-        int rrnInserir;
+        if(registroInserir->codEstacao == -1){ // codEstacao não pode ser -1 pois esse é o valor usado para indicar "não há chave" na árvore-B
+            goto limpar_memoria;
+        }
+
+        // Obtendo o byteoffset do registro a inserir. Isso depende se ele será um novo registro ou um removido reaproveitado.
+
+        bool EhNovoRegistro;
         long offset;
+        int proximo_na_pilha;
 
-        // Verificando se um registro com a mesma chave já existe. Se sim, 
-        // não se deve inserir um novo registro mas sim substituir o antigo, 
-        // pois não podem haver dois registros com mesma chave.
+        if(topo != -1){ // se há registros removidos
 
-        offset = buscar_entrada(arquivoIndice, registroInserir->codEstacao);
-        DEBUG("topo=%d offset=%ld\n", topo, offset);
-        if(offset != -1){ // se o registro já estiver no índice, portanto, está no arquivo de dados
-    
-            DEBUG("O registro com codEstacao %d já existe, está no byteoffset %ld. Substituindo...\n", registroInserir->codEstacao, offset);
-            // liberando memória
-            if(registroInserir->nomeEstacao) free(registroInserir->nomeEstacao);
-            if(registroInserir->nomeLinha) free(registroInserir->nomeLinha);
-            free(registroInserir);
-            registroInserir = NULL;
-            continue;
+            EhNovoRegistro = false;
+            // o RRN do novo registro é o topo da pilha
+            offset = (long)topo * REG_DADOS_S + HEADER_S; // offset do registro no topo da pilha
 
-        // Caso não haja registro com a mesma chave
-        // Deve-se verificar se criamos um novo registro com proxRRN ou aproveitamos um removido
-
-        }else if(topo != -1){ // se há registros removidos
-
-            rrnInserir = topo; // o RRN do novo registro é o topo da pilha
-            offset = (long)rrnInserir * REG_DADOS_S + HEADER_S; // offset do registro no topo da pilha
             fseek(arquivoBin, offset + 1, SEEK_SET); // apontando para ler o campo "proximo"
-            
-            int proximo_na_pilha;
+
             if(fread(&proximo_na_pilha, 4, 1, arquivoBin) != 1){ // lendo o próximo na pilha. Se falhar, libera a memória e sai da função
                 DEBUG("ERRO EM func_9: NÃO CONSEGUIU LER QUAL O PRÓXIMO NA PILHA.\n");
                 goto erro;
             }
-            
-            topo = proximo_na_pilha; // atualizando o topo da pilha. Se não há mais registros removidos, vale -1.
-        
+
         // Caso contrário, se não há nenhum registro removido:
 
         }else{
         
-            rrnInserir = proxRRN; // o RRN do novo registro é o proxRRN
-            offset = (long)rrnInserir * REG_DADOS_S + HEADER_S; // calculando o offset do registro novinho em folha
-        
-            proxRRN++; // incrementando proxRRN
+            EhNovoRegistro = true;
+            // o RRN do novo registro é o proxRRN
+            offset = (long)proxRRN * REG_DADOS_S + HEADER_S; // calculando o offset do registro novinho em folha
+
         }
 
-        // Escrevendo o registro nos dados e inserindo a entrada cprrespondente no índice
-
-        fseek(arquivoBin, offset, SEEK_SET);
+        // Vamos primeiro tentar inserir a entrada no índice. Se o oposto da
+        // função retornar true, é porque já havia uma entrada com a mesma
+        // chave, e, portanto, não devemos inserir o registro no registro de
+        // dados.
 
         DEBUG("Escrevendo codEstacao %d no byteoffset %ld\n", registroInserir->codEstacao, offset);
+
+        bool jaExiste = !inserir_entrada(arquivoIndice, registroInserir->codEstacao, offset); // insere uma nova entrada
+
+        if(jaExiste){
+            goto limpar_memoria; // não se deve inserir nem atualizar topo e proxRRN. 
+        }
+
+        fseek(arquivoBin, offset, SEEK_SET);
 
         if(escreve_registro(registroInserir, arquivoBin) == false){
             DEBUG("ERRO EM func_9: NÃO CONSEGUIU ESCREVER O REGISTRO.\n");
             goto erro;
         }
 
-        if(registroInserir->codEstacao != -1){ // codEstacao não pode ser -1 pois esse é o valor usado para indicar "não há chave" na árvore-B
-            inserir_entrada(arquivoIndice, registroInserir->codEstacao, offset); // insere uma nova entrada
+        // Atualizando variáveis para o próximo loop
+
+        if(EhNovoRegistro){
+            proxRRN++; // incrementando proxRRN
+        }else{ // foi um nó removido
+            topo = proximo_na_pilha; // atualizando o topo da pilha. Se não há mais registros removidos, vale -1.
         }
 
         // Liberando a memória alocada
+        limpar_memoria:
 
         if(registroInserir->nomeEstacao) free(registroInserir->nomeEstacao);
         if(registroInserir->nomeLinha) free(registroInserir->nomeLinha);
@@ -110,7 +111,7 @@ bool func_9(FILE* arquivoBin, FILE* arquivoIndice, int n){
     return true;
 
     erro:
-
+    atualizar_cabecalho(arquivoBin, topo, proxRRN);
     if(registroInserir != NULL){
         if(registroInserir->nomeEstacao) free(registroInserir->nomeEstacao);
         if(registroInserir->nomeLinha) free(registroInserir->nomeLinha);

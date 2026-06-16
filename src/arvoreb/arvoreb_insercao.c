@@ -101,13 +101,14 @@ ENTRADA_INDICE inserir_entrada_em_no(FILE* arvoreB, byteBTree* cabecalho, byteBT
  * Se for uma folha, insere no nó atual
  * Se não for, chamada recursiva no nó descendente, obtém a entrada promovida pelo descendente 
  * e a insere no nó atual.
+ * Se achar a chave no nó atual, marca jaExiste como true e retorna entrada nula
  * Retorna a entrada promovida pelo nó atual
  * 
  * A filestream deve permitir leitura e escrita.
  * O cabeçalho da árvore é necessário para criar novos nós.
  * O tipoNoCriado aponta para um inteiro, cujo valor inicial deve ser TIPOFOLHA. Após a primeira inserção, a função atualiza esse valor para TIPOINTERMEDIARIO
  */
-static ENTRADA_INDICE inserir_entrada_na_arvore_rec(FILE* arvoreB, byteBTree* cabecalho, byteBTree* noAtual, int RRNatual, ENTRADA_INDICE entradaInserir, int* tipoNoCriado) {
+static ENTRADA_INDICE inserir_entrada_na_arvore_rec(FILE* arvoreB, byteBTree* cabecalho, byteBTree* noAtual, int RRNatual, ENTRADA_INDICE entradaInserir, int* tipoNoCriado, bool* jaExiste) {
     DEBUG("RRNatual = %d ", RRNatual);
     if(RRNatual < 0){
         DEBUG("ERRO EM inserir_entrada_na_arvore_rec: RRNatual negativo.\n");
@@ -126,6 +127,7 @@ static ENTRADA_INDICE inserir_entrada_na_arvore_rec(FILE* arvoreB, byteBTree* ca
 
     if(achou){
         DEBUG("Entrada já está inserida no arquivo de índice. What?!\n");
+        *jaExiste = true;
         return get_entrada_nula();
     }
 
@@ -140,7 +142,7 @@ static ENTRADA_INDICE inserir_entrada_na_arvore_rec(FILE* arvoreB, byteBTree* ca
 
         byteBTree descendente[TAM_NO_BTREE]; // alocando memória para armazenar o nó descendente
         carregar_no(descendente, arvoreB, RRNdescendente); // carregando o nó descendente
-        entradaInserir = inserir_entrada_na_arvore_rec(arvoreB, cabecalho, descendente, RRNdescendente, entradaInserir, tipoNoCriado); // inserindo no nó descendente e obtendo a entrada promovida pelo descendente
+        entradaInserir = inserir_entrada_na_arvore_rec(arvoreB, cabecalho, descendente, RRNdescendente, entradaInserir, tipoNoCriado, jaExiste); // inserindo no nó descendente e obtendo a entrada promovida pelo descendente
         armazenar_no(arvoreB, descendente, RRNdescendente);
 
         return inserir_entrada_em_no(arvoreB, cabecalho, noAtual, entradaInserir, tipoNoCriado); // insere no nó atual a entrada promovida pelo descendente e retorna a entrada promovida agora
@@ -185,8 +187,10 @@ int criar_nova_raiz(byteBTree* novaRaiz, FILE* arvoreB, byteBTree* cabecalho){
  * Insere uma entrada na árvore, com chave e byteoffset do arquivo de dados fornecidos.
  * 
  * A filestream deve permitir leitura e escrita.
+ * 
+ * Retorna true, se o codEstacao não estava na árvore, ou false, se ele já estava na árvore.
  */
-void inserir_entrada(FILE* arvoreB, int chave, int BOdados){
+bool inserir_entrada(FILE* arvoreB, int chave, int BOdados){
     
     ENTRADA_INDICE inserirNaArvore = {chave, BOdados, -1};
     byteBTree cabecalho[TAM_CABECALHO_BTREE];
@@ -200,16 +204,21 @@ void inserir_entrada(FILE* arvoreB, int chave, int BOdados){
         inserir_entrada_em_no_shiftada(novaRaiz, inserirNaArvore);
         armazenar_no(arvoreB, novaRaiz, RRNnovaRaiz);
         armazenar_cabecalho(arvoreB, cabecalho);
-        return;
+        return true;
     }
 
     byteBTree raiz[TAM_NO_BTREE];
     int RRNraiz = get_inteiro(cabecalho, BO_RRNraiz);
     carregar_no(raiz, arvoreB, RRNraiz);
     int tipoNoCriar = TIPOFOLHA;
+    bool jaExiste = false;
 
-    ENTRADA_INDICE entradaRaiz = inserir_entrada_na_arvore_rec(arvoreB, cabecalho, raiz, RRNraiz, inserirNaArvore, &tipoNoCriar);
+    ENTRADA_INDICE entradaRaiz = inserir_entrada_na_arvore_rec(arvoreB, cabecalho, raiz, RRNraiz, inserirNaArvore, &tipoNoCriar, &jaExiste);
     
+    if(jaExiste){
+        return false;
+    }
+
     if(!check_entrada_nula(entradaRaiz)){ // Se alguma entrada foi promovida, precisamos criar uma nova raiz
         
         DEBUG("CRIANDO NOVA RAIZ\n");
@@ -221,4 +230,6 @@ void inserir_entrada(FILE* arvoreB, int chave, int BOdados){
 
     armazenar_no(arvoreB, raiz, RRNraiz);
     armazenar_cabecalho(arvoreB, cabecalho);
+
+    return true;
 }

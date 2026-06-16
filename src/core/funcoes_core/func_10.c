@@ -82,6 +82,7 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
 
     erro:
 
+    atualizar_cabecalho(arquivoBin, topoPilha, proxRRN);
     // limpa memória em caso de erro
     if (registro_busca.nomeEstacao) { free(registro_busca.nomeEstacao); registro_busca.nomeEstacao = NULL; }
     if (registro_busca.nomeLinha) { free(registro_busca.nomeLinha); registro_busca.nomeLinha = NULL; }

@@ -97,14 +97,15 @@
 	 * @param[in]   BOdados     Byte offset do registro correspondente no arquivo
 	 *                          de dados
 	 *
-	 * @return      void
+	 * @return      bool        Retorna true, se o codEstacao não estava na árvore, ou false, se ele já estava na árvore.
 	 *
 	 * @remarks     - Mantém a ordenação interna da árvore B
 	 *              - Realiza rebalanceamento automático se necessário
 	 *              - O arquivo é marcado como inconsistente durante a operação
 	 *              - O rebalanceamento pode aumentar a altura da árvore
+	 * 				- Se uma entrada com a mesma chave já estiver na árvore, ela permanece do jeito que está.
 	 */
-	void inserir_entrada(FILE *indice, int chave, int BOdados);
+	bool inserir_entrada(FILE *indice, int chave, int BOdados);
 
 	/**
 	 * @brief       Remove uma entrada da árvore-B por chave
