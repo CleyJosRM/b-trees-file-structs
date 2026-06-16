@@ -103,44 +103,4 @@ Gerencia as estruturas de dados relacionadas.
 	 **/
 	bool atualiza_registro(REG_DADOS_STRUCT* campos_novos, int mask, int RRN, FILE* filestream_bin);
 
-	/**Objetivo: criar o cabeçalho inicial de um arquivo de índice árvore-B.
-	 *
-	 * Pré-condições:
-	 *      Filestream aberta em modo de leitura e escrita.
-	 *
-	 * Pós-condições:
-	 *      O cabeçalho da B-tree é inicializado em disco com status inconsistente.
-	 **/
-	void criar_BTree(FILE* arquivo);
-
-	/**Objetivo: inserir uma entrada no arquivo de índice árvore-B.
-	 *
-	 * Pré-condições:
-	 *      O arquivo de índice foi criado e está aberto em modo de leitura e escrita.
-	 *
-	 * Pós-condições:
-	 *      A chave é inserida na árvore-B em disco.
-	 **/
-	void inserir_entrada_na_arvore(FILE* arvoreB, int chave, int RRNdados);
-
-	/**Objetivo: buscar uma chave no arquivo de índice árvore-B.
-	 *
-	 * Pré-condições:
-	 *      O arquivo de índice deve estar aberto em modo de leitura.
-	 *
-	 * Pós-condições:
-	 *      Retorna o RRN dos dados se a chave for encontrada ou -1 caso contrário.
-	 **/
-	int buscar_chave(FILE* arvoreB, int chaveBusca);
-
-	/**Objetivo: remover uma chave do arquivo de índice árvore-B.
-	 *
-	 * Pré-condições:
-	 *      O arquivo de índice foi aberto em modo leitura e escrita.
-	 *
-	 * Pós-condições:
-	 *      A chave é removida da árvore-B e o arquivo de índice é atualizado em disco.
-	 **/
-	void remover_chave_arvoreB(FILE* arvoreB, int chave);
-
 #endif
