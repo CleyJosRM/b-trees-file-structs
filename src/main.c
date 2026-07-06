@@ -27,8 +27,6 @@ int main(void){ // não receberemos argumentos da linha de comando
 	char* token4 = strtok(NULL, " "); // quinto trecho (se houver)
 	char* token5 = strtok(NULL, " "); // quinto trecho (se houver)
 
-	printf("Compilador xiu %p", token4);
-
 	// DECIDINDO QUAIS ARQUIVOS SERÃO ABERTOS E EM QUE MODO
 
 	FILE* arquivoCSV = NULL;
@@ -43,6 +41,9 @@ int main(void){ // não receberemos argumentos da linha de comando
 	char* nomeDados1 = NULL;
 	char* nomeDados2 = NULL;
 	char* nomeIndice = NULL;
+	char* campoOrd = NULL;
+	char* campoJuncao1 = NULL;
+	char* campoJuncao2 = NULL;
 
 	switch(funcionalidade) {
         case 1:
@@ -85,27 +86,34 @@ int main(void){ // não receberemos argumentos da linha de comando
         	modoDados1 = "rb";
         	modoDados2 = "rb";
         	nomeDados1 = token1;
+        	campoJuncao1 = token2;
         	nomeDados2 = token3;
+        	campoJuncao2 = token4;
         	break;
    		case 12:
    			modoDados1 = "rb";
    			modoDados2 = "rb";
    			modoIndice = "rb";
    			nomeDados1 = token1;
+   			campoJuncao1 = token2;
    			nomeDados2 = token3;
+   			campoJuncao2 = token4;
    			nomeIndice = token5;
    			break;
    		case 13:
    			modoDados1 = "rb";
    			modoDados2 = "wb";
    			nomeDados1 = token1;
+   			campoOrd   = token2;
    			nomeDados2 = token3;
    			break;
    		case 14:
    			modoDados1 = "rb+";
    			modoDados2 = "rb+";
    			nomeDados1 = token1;
+   			campoJuncao1 = token2;
    			nomeDados2 = token3;
+   			campoJuncao2 = token4;
         	break;
         default:
             return 1;
@@ -186,22 +194,22 @@ int main(void){ // não receberemos argumentos da linha de comando
 			break;
 		case 11:
 			if(arquivoDados1 && arquivoDados2){
-				if(!func_11(arquivoDados1, arquivoDados2)) goto erro;
+				if(!func_11(arquivoDados1, campoJuncao1, arquivoDados2, campoJuncao2)) goto erro;
 			}
 			break;
 		case 12:
 			if(arquivoDados1 && arquivoDados2){
-				if(!func_12(arquivoDados1, arquivoDados2, arquivoIndice)) goto erro;
+				if(!func_12(arquivoDados1, campoJuncao1, arquivoDados2, campoJuncao2, arquivoIndice)) goto erro;
 			}
 			break;
 		case 13:
 			if(arquivoDados1 && arquivoDados2){
-				if(!func_13(arquivoDados1, arquivoDados2)) goto erro;
+				if(!func_13(arquivoDados1, campoOrd, arquivoDados2)) goto erro;
 			}
 			break;
 		case 14:
 			if(arquivoDados1 && arquivoDados2){
-				if(!func_14(arquivoDados1, arquivoDados2)) goto erro;
+				if(!func_14(arquivoDados1, campoJuncao1, arquivoDados2, campoJuncao2)) goto erro;
 			}
 			break;
 		default:
@@ -232,5 +240,5 @@ int main(void){ // não receberemos argumentos da linha de comando
 	fecha_binario(arquivoDados1, modoDados1);
 	fechar_indice(arquivoIndice, modoIndice);
 
-	return 0;
+	return 0; // para o Makefile não retornar erro no fim da execução, a main deve retornar 0
 }

@@ -117,11 +117,11 @@
 	 */
 	bool func_10(FILE* arquivoDados1, FILE* arquivoDados2, int n);
 
-	bool func_11(FILE* arquivoDados1, FILE* arquivoDados2);
+	bool func_11(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char* campoJuncao2);
 
-	bool func_12(FILE* arquivoDados1, FILE* arquivoDados2, FILE* arquivoIndice);
+	bool func_12(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char* campoJuncao2, FILE* arquivoIndice);
 
-	bool func_13(FILE* arquivoDados1, FILE* arquivoDados2);
+	bool func_13(FILE* arquivoDados1, char* campoOrd, FILE* arquivoDados2);
 
-	bool func_14(FILE* arquivoDados1, FILE* arquivoDados2);
+	bool func_14(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char* campoJuncao2);
 #endif

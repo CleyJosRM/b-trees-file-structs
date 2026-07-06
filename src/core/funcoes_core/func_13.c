@@ -5,17 +5,18 @@
 #include "core/datamanager.h"
 #include "arvoreb/indice.h"
 
-int comparar_codProxEstacao(const void* reg1, const void* reg2){
+static int comparar_codProxEstacao(const void* reg1, const void* reg2){
 	REG_DADOS_STRUCT* estacaoEsq = *(REG_DADOS_STRUCT**) reg1;
 	REG_DADOS_STRUCT* estacaoDir = *(REG_DADOS_STRUCT**) reg2;
 
+    // Valores nulos devem ficar por último:
 	if (estacaoEsq->codProxEstacao == -1 && estacaoDir->codProxEstacao != -1) return 1;
     if (estacaoEsq->codProxEstacao != -1 && estacaoDir->codProxEstacao == -1) return -1;
 
 	return estacaoEsq->codProxEstacao - estacaoDir->codProxEstacao;
 }
 
-int comparar_codEstacao(const void* reg1, const void* reg2){
+static int comparar_codEstacao(const void* reg1, const void* reg2){
 	REG_DADOS_STRUCT* estacaoEsq = *(REG_DADOS_STRUCT**) reg1;
 	REG_DADOS_STRUCT* estacaoDir = *(REG_DADOS_STRUCT**) reg2;
 
@@ -26,38 +27,46 @@ int comparar_codEstacao(const void* reg1, const void* reg2){
 	return estacaoEsq->codEstacao - estacaoDir->codEstacao;
 }
 
-bool func_13(FILE* arquivoDados1, FILE* arquivoDados2){
+bool func_13(FILE* arquivoDados1, char* campoOrd, FILE* arquivoDados2){
 
-	// Lendo informações importantes do cabeçalho do arquivoDados1:
-
-	int nroEstacoes;
-	int nroParesEstacao;
-	fseek(arquivoDados1, 9, SEEK_SET);
-	fread(&nroEstacoes, 4, 1, arquivoDados1);
-	fread(&nroParesEstacao, 4, 1, arquivoDados1);
-	
 	// Criando array de ponteiros para struct registro:
 	
-	int i=0; // qtd de ponteiros no array
-	int tam_array = 32;
+	int i=0; // quantidade atual de registros lidos
+	int tam_array = 32; // tamanho inicial de array de ponteiros para registro
     REG_DADOS_STRUCT** registroDados = (REG_DADOS_STRUCT**)malloc(tam_array * sizeof(REG_DADOS_STRUCT*));
-   	if(registroDados == NULL){
+    if(registroDados == NULL){
    		DEBUG("ERRO EM func_13: ALOCAÇÃO DE registroDados FALHOU.\n");
    		goto erro;
    	}
 
-    fseek(arquivoDados1, HEADER_S, SEEK_SET);
+    // Escolhendo a função de ordenação dos registros 
+
+    int (*funcao_comparacao)(const void* reg1, const void* reg2);
+
+    if(strcmp(campoOrd, "codEstacao") == 0){
+       funcao_comparacao = comparar_codEstacao;
+    }else if(strcmp(campoOrd, "codProxEstacao") == 0){
+        funcao_comparacao = comparar_codProxEstacao;
+    }else{
+        DEBUG("ERRO EM func_13: CAMPO DE ORDENAÇÃO INVÁLIDO")
+        goto erro;
+    }
+
+    // Trazendo os registros do arquivo de entrada para a memória
+
+    fseek(arquivoDados1, HEADER_S, SEEK_SET); // primeiro registro
     
     while(1) {
-        // Aloca a struct para a posição atual
+        // Aloca espaço para struct registro, armazena ponteiro no array 
         registroDados[i] = (REG_DADOS_STRUCT*)malloc(sizeof(REG_DADOS_STRUCT));
         if(registroDados[i] == NULL){
    			DEBUG("ERRO EM func_13: ALOCAÇÃO DE registroDados[%d] FALHOU.\n", i);
    			goto erro;
    		}
 
-        if(load_registro(arquivoDados1, registroDados[i]) == false) {
-            free(registroDados[i]); // libera o struct
+        if(load_registro(arquivoDados1, registroDados[i]) == false) { // carregando registro na memória
+            // se falhar, é porque o arquivo acabou
+            free(registroDados[i]); // libera o último struct, pois não será preenchido
             break;
         }else if(registroDados[i]->removido == '1'){ // se o registro for logicamente removido, pula
         	free(registroDados[i]->nomeEstacao);
@@ -66,39 +75,35 @@ bool func_13(FILE* arquivoDados1, FILE* arquivoDados2){
         	continue;
         }
         
-        i++;
-        if(i == tam_array){
-            tam_array *= 2;
-            registroDados = (REG_DADOS_STRUCT**)realloc(registroDados, tam_array * sizeof(REG_DADOS_STRUCT*));
-        	if(registroDados == NULL){
+        i++; // incrementa a qtd de registros lidos
+        if(i == tam_array){ // se o array encheu
+            tam_array *= 2; // dobra o tamanho e realoca
+            REG_DADOS_STRUCT** temp = (REG_DADOS_STRUCT**)realloc(registroDados, tam_array * sizeof(REG_DADOS_STRUCT*));
+            if(temp == NULL){ // boa prática usar uma variável temporária com relaloc
         		DEBUG("ERRO EM func_13: REALOCAÇÃO DE registroDados FALHOU.\n");
    				goto erro;
         	}
+            registroDados = temp;
         }
     }
 
-    // usando as funções de comparação de registros para ordenar em memória principal
-    qsort(registroDados, i, sizeof(REG_DADOS_STRUCT*), comparar_codEstacao);
+    // Usando a função de comparação para ordenar os registros em memória principal
 
-    // Escrevendo o cabeçalho no arquivo de saída
-    
-    unsigned char status = '0';
-    int topo = -1; // o novo arquivo não tem pilha de registros logicamente removidos
-    int proxRRN = i; // o novo arquivo tem i registros, pois apagamos os logicamente removidos
-    fseek(arquivoDados2, 0, SEEK_SET);
-    fwrite(&status, 1, 1, arquivoDados2);
-    fwrite(&topo, 4, 1, arquivoDados2);
-    fwrite(&proxRRN, 4, 1, arquivoDados2);
-    fwrite(&nroEstacoes, 4, 1, arquivoDados2);
-    fwrite(&nroParesEstacao, 4, 1, arquivoDados2);
+    qsort(registroDados, i, sizeof(REG_DADOS_STRUCT*), funcao_comparacao);
     
     // Escrevendo os registros de dados ordenados no arquivo de saída:
+
+    fseek(arquivoDados2, HEADER_S, SEEK_SET);
     for(int j = 0; j < i; j++){
         if(escreve_registro(registroDados[j], arquivoDados2) == false){
         	DEBUG("ERRO EM func_13: ERRO AO ESCREVER REGISTRO EM ARQUIVO ORDENADO.\n");
         	goto erro;
         } 
     }
+
+    // Escrevendo o cabeçalho no arquivo de saída
+    
+    atualizar_cabecalho(arquivoDados2, -1, i); // topo = -1, proxRRN = i
 
     // Liberando a memória:
 
