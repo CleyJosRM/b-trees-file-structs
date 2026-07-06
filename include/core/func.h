@@ -117,11 +117,53 @@
 	 */
 	bool func_10(FILE* arquivoDados1, FILE* arquivoDados2, int n);
 
+	/**
+	 * @brief Funcinalidade [12]: Realiza uma autojunção com os campos codProxEstacao e codEstacao
+	 * Implementada por meio de loop aninhado. Para cada registro do arquivo,
+	 * se itera sobre o arquivo todo buscando registros que satisfação a condição de junção
+	 * Os registros que satisfazem a condição são imprimidos.
+	 * @param arquivoDados1 Filestream do primeiro arquivo de dados. Na prática, os dois arquivos são o mesmo 
+	 * @param campoJuncao1 Campo do primeiro registro, que deve se igualar ao campo do segundo registro. Na prática é sempre codProxEstacao
+	 * @param arquivoDados2 Filestream do segundo arquivo de dados. Na prática, os dois arquivos são o mesmo
+	 * @param campoJuncao2 Campo do segundo registro, que deve se igualar ao campo do primeiro registro. Na prática é sempre codEstacao
+	 * @return bool true se sucesso, false se fracasso. 
+	 */
 	bool func_11(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char* campoJuncao2);
 
+	/**
+	 * @brief Funcionalidade [12]: Realiza uma autojunção com os campos codProxEstacao e codEstacao
+	 * Implementada por meio de busca no índice. Para cada registro do arquivo, usa-se o campo relevante
+	 * como chave de busca no índice (Árvore-B).
+	 * Os registros que satisfazem a condição são imprimidos.
+	 * @param arquivoDados1 Filestream do primeiro arquivo de dados. Na prática, os dois arquivos são o mesmo 
+	 * @param campoJuncao1 Campo do primeiro registro, que deve se igualar ao campo do segundo registro. Na prática é sempre codProxEstacao
+	 * @param arquivoDados2 Filestream do segundo arquivo de dados. Na prática, os dois arquivos são o mesmo
+	 * @param campoJuncao2 Campo do segundo registro, que deve se igualar ao campo do primeiro registro. Na prática é sempre codEstacao
+	 * @return bool true se sucesso, false se fracasso. 
+	 */
 	bool func_12(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char* campoJuncao2, FILE* arquivoIndice);
 
-	bool func_13(FILE* arquivoDados1, char* campoOrd, FILE* arquivoDados2);
+	/**
+	 * @brief Funcionalidade [13]: Realiza a ordenação de um arquivo de acordo com o campo especificado
+	 * O arquivo é carregado todo na memória principal e ordenado utilizando qsort,
+	 * com a função de comparação dependendo do campo escolhido.
+	 * Arquivos removidos logicamente no arquivo de entrada não aparecem no arquivo de saída.
+	 * @param arquivoEntrada Filestream do arquivo que será ordenado
+	 * @param campoOrd Campo que será usado como chave de ordenação. Na prática, os únicos possíveis são codEstacao e codProxEstacao
+	 * @param arquivoSaida Filestream do arquivo em que serão escritos os registros ordenadamente
+	 */
+	bool func_13(FILE* arquivoEntrada, char* campoOrd, FILE* arquivoSaida);
 
+	/**
+	 * @brief Funcionalidade [14]: Realiza uma autojunção com os campos codProxEstacao e codEstacao
+	 * Implementada por meio de ordenação-intercalação. Os dois arquivos são ordenados
+	 * de acordo com seus respectivos campos. Aí se itera uma vez sobre eles verificando a condição.
+	 * Os registros que satisfazem a condição são imprimidos.
+	 * @param arquivoDados1 Filestream do primeiro arquivo de dados. Na prática, os dois arquivos são o mesmo 
+	 * @param campoJuncao1 Campo do primeiro registro, que deve se igualar ao campo do segundo registro. Na prática é sempre codProxEstacao
+	 * @param arquivoDados2 Filestream do segundo arquivo de dados. Na prática, os dois arquivos são o mesmo
+	 * @param campoJuncao2 Campo do segundo registro, que deve se igualar ao campo do primeiro registro. Na prática é sempre codEstacao
+	 * @return bool true se sucesso, false se fracasso. 
+	 */
 	bool func_14(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char* campoJuncao2);
 #endif

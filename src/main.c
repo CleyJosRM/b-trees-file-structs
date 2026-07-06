@@ -116,7 +116,7 @@ int main(void){ // não receberemos argumentos da linha de comando
    			campoJuncao2 = token4;
         	break;
         default:
-            return 1;
+            return 0;
     }
 
     // ABRINDO OS ARQUIVOS

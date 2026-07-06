@@ -27,7 +27,7 @@ static int comparar_codEstacao(const void* reg1, const void* reg2){
 	return estacaoEsq->codEstacao - estacaoDir->codEstacao;
 }
 
-bool func_13(FILE* arquivoDados1, char* campoOrd, FILE* arquivoDados2){
+bool func_13(FILE* arquivoEntrada, char* campoOrd, FILE* arquivoSaida){
 
 	// Criando array de ponteiros para struct registro:
 	
@@ -54,7 +54,7 @@ bool func_13(FILE* arquivoDados1, char* campoOrd, FILE* arquivoDados2){
 
     // Trazendo os registros do arquivo de entrada para a memória
 
-    fseek(arquivoDados1, HEADER_S, SEEK_SET); // primeiro registro
+    fseek(arquivoEntrada, HEADER_S, SEEK_SET); // primeiro registro
     
     while(1) {
         // Aloca espaço para struct registro, armazena ponteiro no array 
@@ -64,7 +64,7 @@ bool func_13(FILE* arquivoDados1, char* campoOrd, FILE* arquivoDados2){
    			goto erro;
    		}
 
-        if(load_registro(arquivoDados1, registroDados[i]) == false) { // carregando registro na memória
+        if(load_registro(arquivoEntrada, registroDados[i]) == false) { // carregando registro na memória
             // se falhar, é porque o arquivo acabou
             free(registroDados[i]); // libera o último struct, pois não será preenchido
             break;
@@ -93,9 +93,9 @@ bool func_13(FILE* arquivoDados1, char* campoOrd, FILE* arquivoDados2){
     
     // Escrevendo os registros de dados ordenados no arquivo de saída:
 
-    fseek(arquivoDados2, HEADER_S, SEEK_SET);
+    fseek(arquivoSaida, HEADER_S, SEEK_SET);
     for(int j = 0; j < i; j++){
-        if(escreve_registro(registroDados[j], arquivoDados2) == false){
+        if(escreve_registro(registroDados[j], arquivoSaida) == false){
         	DEBUG("ERRO EM func_13: ERRO AO ESCREVER REGISTRO EM ARQUIVO ORDENADO.\n");
         	goto erro;
         } 
@@ -103,7 +103,7 @@ bool func_13(FILE* arquivoDados1, char* campoOrd, FILE* arquivoDados2){
 
     // Escrevendo o cabeçalho no arquivo de saída
     
-    atualizar_cabecalho(arquivoDados2, -1, i); // topo = -1, proxRRN = i
+    atualizar_cabecalho(arquivoSaida, -1, i); // topo = -1, proxRRN = i
 
     // Liberando a memória:
 
