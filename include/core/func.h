@@ -118,7 +118,7 @@
 	bool func_10(FILE* arquivoDados1, FILE* arquivoDados2, int n);
 
 	/**
-	 * @brief Funcinalidade [12]: Realiza uma autojunção com os campos codProxEstacao e codEstacao
+	 * @brief Funcinalidade [11]: Realiza uma autojunção com os campos codProxEstacao e codEstacao
 	 * Implementada por meio de loop aninhado. Para cada registro do arquivo,
 	 * se itera sobre o arquivo todo buscando registros que satisfação a condição de junção
 	 * Os registros que satisfazem a condição são imprimidos.

@@ -25,7 +25,7 @@ int main(void){ // não receberemos argumentos da linha de comando
 	char* token2 = strtok(NULL, " "); // terceiro trecho 
 	char* token3 = strtok(NULL, " "); // quarto trecho (se houver)
 	char* token4 = strtok(NULL, " "); // quinto trecho (se houver)
-	char* token5 = strtok(NULL, " "); // quinto trecho (se houver)
+	char* token5 = strtok(NULL, " "); // sexto trecho (se houver)
 
 	// DECIDINDO QUAIS ARQUIVOS SERÃO ABERTOS E EM QUE MODO
 
