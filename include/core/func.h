@@ -4,6 +4,7 @@
 #ifndef FUNC_H
 	#define FUNC_H
 
+	#include <stdio.h>
 	#include<stdbool.h>
 	
 	/**
@@ -114,5 +115,13 @@
 	 * @param n Quantidade de operações de remoção a serem processadas.
 	 * @return bool true se sucesso, false se fracasso.
 	 */
-	bool func_10(FILE* arquivoDados, FILE* arquivoIndice, int n);
+	bool func_10(FILE* arquivoDados1, FILE* arquivoDados2, int n);
+
+	bool func_11(FILE* arquivoDados1, FILE* arquivoDados2);
+
+	bool func_12(FILE* arquivoDados1, FILE* arquivoDados2, FILE* arquivoIndice);
+
+	bool func_13(FILE* arquivoDados1, FILE* arquivoDados2);
+
+	bool func_14(FILE* arquivoDados1, FILE* arquivoDados2);
 #endif

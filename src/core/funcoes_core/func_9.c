@@ -79,7 +79,7 @@ bool func_9(FILE* arquivoBin, FILE* arquivoIndice, int n){
         if(jaExiste){
             goto limpar_memoria; // não se deve inserir nem atualizar topo e proxRRN. 
         }
-
+        
         fseek(arquivoBin, offset, SEEK_SET);
 
         if(escreve_registro(registroInserir, arquivoBin) == false){

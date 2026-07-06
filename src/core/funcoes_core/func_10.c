@@ -22,7 +22,7 @@ bool func_10(FILE* arquivoBin, FILE* arquivoIndice, int n){
         ler_campos(&registro_busca, &mask);
         // Se a busca envolve a chave primária (codEstacao), usa o índice Árvore-B
         if(mask & 1){
-            DEBUG("Buscando registro com codEstacao %d usando o índice Árvore-B.\n", registros_de_busca[i].codEstacao);
+            DEBUG("Buscando registro com codEstacao %d usando o índice Árvore-B.\n", registro_busca.codEstacao);
             int byteOffset = buscar_entrada(arquivoIndice, registro_busca.codEstacao);
             if(byteOffset != -1){
                 DEBUG("Registro encontrado no índice Árvore-B com byteOffset %d. Verificando se o registro corresponde aos outros campos de busca...\n", byteOffset);
