@@ -14,7 +14,9 @@ bool func_14(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char*
 		return false;
 	}
 
-	// Carregando os registros dos dois arquivos para a memória principal
+	// Carregando os registros dos dois arquivos para a memória principal:
+
+	// Criando arrays de ponteiros para struct registro
 
 	int i1 = 0;
 	int i2 = 0;
@@ -39,19 +41,19 @@ bool func_14(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char*
 			goto erro;
 		}
 
-		if(load_registro(arquivoDados1, registros1[i1]) == false){
+		if(load_registro(arquivoDados1, registros1[i1]) == false){ // se falhar, é porque o arquivo acabou
 			free(registros1[i1]);
 			break;
-		}else if(registros1[i1]->removido == '1' || registros1[i1]->codProxEstacao == -1){
+		}else if(registros1[i1]->removido == '1' || registros1[i1]->codProxEstacao == -1){ // se o registro for logicamente removido ou não tiver próximo, pula
 			liberar_registro(registros1[i1]);
 			continue;
 		}
 
-		i1++;
-		if(i1 == tam_array1){
+		i1++; // incrementa a qtd de registros lidos
+		if(i1 == tam_array1){ // se o array encheu, dobra o tamanho e realoca
 			tam_array1 *= 2;
 			REG_DADOS_STRUCT** temp = (REG_DADOS_STRUCT**)realloc(registros1, tam_array1 * sizeof(REG_DADOS_STRUCT*));
-			if(temp == NULL){
+			if(temp == NULL){ 
 				DEBUG("ERRO EM func_14: REALOCAÇÃO DE registros1 FALHOU.\n");
 				goto erro;
 			}
@@ -98,31 +100,31 @@ bool func_14(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char*
 
 	int p1 = 0;
 	int p2 = 0;
-	while(p1 < i1 && p2 < i2){
+	while(p1 < i1 && p2 < i2){ // enquanto não chegarmos ao final de nenhum dos dois arrays
 		int chave1 = registros1[p1]->codProxEstacao;
 		int chave2 = registros2[p2]->codEstacao;
 
-		if(chave1 < chave2){
+		if(chave1 < chave2){ // se a chave do primeiro registro for menor, incrementa o ponteiro do primeiro array
 			p1++;
 			continue;
 		}
-		if(chave1 > chave2){
+		if(chave1 > chave2){ // se a chave do segundo registro for menor, incrementa o ponteiro do segundo array
 			p2++;
 			continue;
 		}
 
 		int fim1 = p1;
 		int fim2 = p2;
-		while(fim1 < i1 && registros1[fim1]->codProxEstacao == chave1) fim1++;
+		while(fim1 < i1 && registros1[fim1]->codProxEstacao == chave1) fim1++; // incrementa o ponteiro do primeiro array até encontrar um registro com chave diferente
 		while(fim2 < i2 && registros2[fim2]->codEstacao == chave2) fim2++;
 
-		for(int a = p1; a < fim1; a++){
-			for(int b = p2; b < fim2; b++){
+		for(int a = p1; a < fim1; a++){ // para cada registro do primeiro array com a mesma chave, imprime todos os registros do segundo array com a mesma chave
+			for(int b = p2; b < fim2; b++){ 
 				printf("%d %s %s %d %s\n", registros1[a]->codEstacao, registros1[a]->nomeEstacao, registros1[a]->nomeLinha, registros1[a]->codProxEstacao, registros2[b]->nomeEstacao);
 			}
 		}
 
-		p1 = fim1;
+		p1 = fim1; // incrementa os ponteiros para o próximo registro com chave diferente
 		p2 = fim2;
 	}
 
