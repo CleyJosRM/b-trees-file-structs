@@ -5,36 +5,6 @@
 #include "core/datamanager.h"
 #include "arvoreb/indice.h"
 
-static int comparar_codProxEstacao(const void* reg1, const void* reg2){
-	REG_DADOS_STRUCT* estacaoEsq = *(REG_DADOS_STRUCT**) reg1;
-	REG_DADOS_STRUCT* estacaoDir = *(REG_DADOS_STRUCT**) reg2;
-
-	if (estacaoEsq->codProxEstacao == -1 && estacaoDir->codProxEstacao != -1) return 1;
-	if (estacaoEsq->codProxEstacao != -1 && estacaoDir->codProxEstacao == -1) return -1;
-
-	return estacaoEsq->codProxEstacao - estacaoDir->codProxEstacao;
-}
-
-static int comparar_codEstacao(const void* reg1, const void* reg2){
-	REG_DADOS_STRUCT* estacaoEsq = *(REG_DADOS_STRUCT**) reg1;
-	REG_DADOS_STRUCT* estacaoDir = *(REG_DADOS_STRUCT**) reg2;
-
-	if (estacaoEsq->codEstacao == -1 && estacaoDir->codEstacao != -1) return 1;
-	if (estacaoEsq->codEstacao != -1 && estacaoDir->codEstacao == -1) return -1;
-
-	return estacaoEsq->codEstacao - estacaoDir->codEstacao;
-}
-
-static void liberar_registro(REG_DADOS_STRUCT* registro){
-	if(registro == NULL) return;
-
-	free(registro->nomeEstacao);
-	registro->nomeEstacao = NULL;
-	free(registro->nomeLinha);
-	registro->nomeLinha = NULL;
-	free(registro);
-}
-
 bool func_14(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char* campoJuncao2){
 
 	// Verificando campos de junção
@@ -121,8 +91,8 @@ bool func_14(FILE* arquivoDados1, char* campoJuncao1, FILE* arquivoDados2, char*
 
 	// Ordenando os dois conjuntos de registros
 
-	qsort(registros1, i1, sizeof(REG_DADOS_STRUCT*), comparar_codProxEstacao);
-	qsort(registros2, i2, sizeof(REG_DADOS_STRUCT*), comparar_codEstacao);
+	qsort(registros1, i1, sizeof(REG_DADOS_STRUCT*), comparar_registros_por_codProxEstacao);
+	qsort(registros2, i2, sizeof(REG_DADOS_STRUCT*), comparar_registros_por_codEstacao);
 
 	// Realizando a autojunção por ordenação-intercalação
 

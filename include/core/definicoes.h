@@ -124,4 +124,8 @@ e funções auxiliares que podem ser usadas por todo o código.
 	// Função para debug
 	void ExibirBinario(char *arquivo);
 
+	int comparar_registros_por_codProxEstacao(const void* reg1, const void* reg2);
+
+	int comparar_registros_por_codEstacao(const void* reg1, const void* reg2);
+
 #endif

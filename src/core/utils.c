@@ -188,10 +188,25 @@ void print_registro(FILE* filestream_bin){
     fseek(filestream_bin, pos_inicial + REG_DADOS_S, SEEK_SET);
 }
 
+int comparar_registros_por_codProxEstacao(const void* reg1, const void* reg2){
+	REG_DADOS_STRUCT* estacaoEsq = *(REG_DADOS_STRUCT**) reg1;
+	REG_DADOS_STRUCT* estacaoDir = *(REG_DADOS_STRUCT**) reg2;
 
+	if (estacaoEsq->codProxEstacao == -1 && estacaoDir->codProxEstacao != -1) return 1;
+	if (estacaoEsq->codProxEstacao != -1 && estacaoDir->codProxEstacao == -1) return -1;
 
+	return estacaoEsq->codProxEstacao - estacaoDir->codProxEstacao;
+}
 
+int comparar_registros_por_codEstacao(const void* reg1, const void* reg2){
+	REG_DADOS_STRUCT* estacaoEsq = *(REG_DADOS_STRUCT**) reg1;
+	REG_DADOS_STRUCT* estacaoDir = *(REG_DADOS_STRUCT**) reg2;
 
+	if (estacaoEsq->codEstacao == -1 && estacaoDir->codEstacao != -1) return 1;
+	if (estacaoEsq->codEstacao != -1 && estacaoDir->codEstacao == -1) return -1;
+
+	return estacaoEsq->codEstacao - estacaoDir->codEstacao;
+}
 
 
 /* Objetivo: ler uma linha do usuário com nomes de campos e valores de campos

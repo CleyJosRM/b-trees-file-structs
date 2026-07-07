@@ -5,28 +5,6 @@
 #include "core/datamanager.h"
 #include "arvoreb/indice.h"
 
-static int comparar_codProxEstacao(const void* reg1, const void* reg2){
-	REG_DADOS_STRUCT* estacaoEsq = *(REG_DADOS_STRUCT**) reg1;
-	REG_DADOS_STRUCT* estacaoDir = *(REG_DADOS_STRUCT**) reg2;
-
-    // Valores nulos devem ficar por último:
-	if (estacaoEsq->codProxEstacao == -1 && estacaoDir->codProxEstacao != -1) return 1;
-    if (estacaoEsq->codProxEstacao != -1 && estacaoDir->codProxEstacao == -1) return -1;
-
-	return estacaoEsq->codProxEstacao - estacaoDir->codProxEstacao;
-}
-
-static int comparar_codEstacao(const void* reg1, const void* reg2){
-	REG_DADOS_STRUCT* estacaoEsq = *(REG_DADOS_STRUCT**) reg1;
-	REG_DADOS_STRUCT* estacaoDir = *(REG_DADOS_STRUCT**) reg2;
-
-	// Valores nulos devem ficar por último:
-	if (estacaoEsq->codEstacao == -1 && estacaoDir->codEstacao != -1) return 1;
-    if (estacaoEsq->codEstacao != -1 && estacaoDir->codEstacao == -1) return -1;
-
-	return estacaoEsq->codEstacao - estacaoDir->codEstacao;
-}
-
 bool func_13(FILE* arquivoEntrada, char* campoOrd, FILE* arquivoSaida){
 
 	// Criando array de ponteiros para struct registro:
@@ -44,9 +22,9 @@ bool func_13(FILE* arquivoEntrada, char* campoOrd, FILE* arquivoSaida){
     int (*funcao_comparacao)(const void* reg1, const void* reg2);
 
     if(strcmp(campoOrd, "codEstacao") == 0){
-       funcao_comparacao = comparar_codEstacao;
+    funcao_comparacao = comparar_registros_por_codEstacao;
     }else if(strcmp(campoOrd, "codProxEstacao") == 0){
-        funcao_comparacao = comparar_codProxEstacao;
+        funcao_comparacao = comparar_registros_por_codProxEstacao;
     }else{
         DEBUG("ERRO EM func_13: CAMPO DE ORDENAÇÃO INVÁLIDO")
         goto erro;
