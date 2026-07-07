@@ -49,9 +49,9 @@ A Árvore AVL Genérica foi construída num trabalho anterior do curso de "Algor
 
 ---
 
-## As 10 Funcionalidades (Interface SQL-like)
+## As 14 Funcionalidades (Interface SQL-like)
 
-A interface de entrada recebe códigos de 1 a 10 que representam rotinas análogas aos principais comandos SQL, implementadas em `core/funcoes_core/`. O roteador principal da aplicação (`src/main.c`) faz o *parsing* dos comandos via linha de comando (`strtok`) e aciona a respectiva rotina:
+A interface de entrada recebe códigos de 1 a 14 que representam rotinas análogas aos principais comandos SQL, implementadas em `core/funcoes_core/`. O roteador principal da aplicação (`src/main.c`) faz o *parsing* dos comandos via linha de comando (`strtok`) e aciona a respectiva rotina:
 
 | Comando | Operação SQL Análoga | Descrição |
 | :---: | :--- | :--- |
@@ -65,5 +65,9 @@ A interface de entrada recebe códigos de 1 a 10 que representam rotinas análog
 | **[8]** | `SELECT WHERE` *(Índice)* | **Busca Otimizada:** Identifica se `codEstacao` está nos filtros. Se sim, desce a Árvore-B e resgata o *byte offset* direto do disco em tempo logarítmico. Caso contrário, utiliza a busca sequencial da rotina [3]. |
 | **[9]** | `DELETE WHERE` *(Índice)* | **Remoção Otimizada/Sincronizada:** Utiliza a Árvore-B para localizar, deletar logicamente no arquivo de dados, e também realizar o  processo de remoção na respectiva B-Tree. |
 | **[10]** | `INSERT INTO` *(Índice)* | **Inserção Sincronizada:** Insere registro (reaproveitando espaços se possível) no dado e já propaga a nova entrada na Árvore-B associada. |
+| **[11]** | `SELECT ... JOIN ...` | **Junção por Loop Aninhado:** Recupera os registros de `estacao.bin` juntando `codProxEstacao` com `codEstacao` em uma autojunção, sem usar índice, por meio de varredura completa dos dois arquivos. |
+| **[12]** | `SELECT ... JOIN ...` *(Índice)* | **Junção por Loop Único:** Realiza a mesma autojunção da [11], mas usa a Árvore-B do segundo arquivo para localizar os registros de forma otimizada. |
+| **[13]** | `ORDER BY` | **Ordenação em Memória Principal:** Lê o arquivo binário inteiro para RAM, ordena de forma crescente por `codEstacao` ou `codProxEstacao` e grava um novo arquivo ordenado. |
+| **[14]** | `SELECT ... JOIN ...` *(Ordenação-Intercalação)* | **Junção Ordenação-Intercalação:** Ordena os dois arquivos pelos campos da junção e faz o *merge* dos registros com `codProxEstacao = codEstacao`, combinando os pares correspondentes. |
 
 ---
